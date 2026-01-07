@@ -1,0 +1,94 @@
+// Prisma Schema für Vertragscontrolling
+// SQLite Datenbank für lokale Installation
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Benutzer
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  role          String    @default("USER") // ADMIN, USER, VIEWER
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  contracts     Contract[] @relation("CreatedBy")
+  
+  @@map("users")
+}
+
+// Vertragsarten
+model ContractType {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  color     String     @default("#be004a")
+  createdAt DateTime   @default(now())
+  
+  contracts Contract[]
+  
+  @@map("contract_types")
+}
+
+// Verträge
+model Contract {
+  id               String    @id @default(cuid())
+  contractNumber   String    @unique
+  title            String
+  partner          String
+  description      String?
+  
+  // Vertragsart
+  typeId           String
+  type             ContractType @relation(fields: [typeId], references: [id])
+  
+  // Laufzeiten
+  startDate        DateTime
+  endDate          DateTime?
+  terminationDate  DateTime?      // Kündigungsfrist
+  noticePeriodDays Int       @default(30) // Kündigungsfrist in Tagen
+  
+  // Finanzen
+  value            Float?         // Vertragswert
+  currency         String    @default("EUR")
+  paymentInterval  String?        // monatlich, jährlich, einmalig
+  
+  // Status (ACTIVE, TERMINATED, EXPIRED, DRAFT)
+  status           String    @default("ACTIVE")
+  autoRenewal      Boolean   @default(false)
+  
+  // Notizen & Dokumente
+  notes            String?
+  documentPath     String?        // Pfad zum Vertragsdokument
+  
+  // Erinnerungen
+  reminderDays     Int       @default(30) // Tage vor Ablauf
+  reminderSent     Boolean   @default(false)
+  
+  // Metadaten
+  createdById      String
+  createdBy        User      @relation("CreatedBy", fields: [createdById], references: [id])
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@map("contracts")
+}
+
+// E-Mail Benachrichtigungen Log
+model NotificationLog {
+  id          String   @id @default(cuid())
+  contractId  String
+  type        String   // REMINDER, EXPIRY, etc.
+  sentAt      DateTime @default(now())
+  recipient   String
+  success     Boolean
+  
+  @@map("notification_logs")
+}
