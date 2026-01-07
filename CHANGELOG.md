@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.5.0] - 2026-01-07
+
+### Neu: Excel-Export-Funktion
+- **Professioneller Excel-Export**: Alle Vertragsdaten werden in eine sauber strukturierte `.xlsx`-Datei exportiert
+- **Logische Gliederung**: Alle 6 Sektionen (Stammdaten, Umsatzplanung, Berichtspflichten, Verwendungsnachweis, Kennzahlen, Fristen) in exakt dieser Reihenfolge
+- **Visuelles Design**: 
+  - Sektions-Header mit Corporate Design (#94a3b8 Hintergrund, #be004a Schrift)
+  - Tabellen mit formatierten Headern und automatischer Spaltenbreiten-Anpassung
+  - Eingefrorene erste Zeile für bessere Navigation
+- **Excel-Formeln**: 
+  - Summen in der Umsatzplanung als `=SUMME(...)`-Formeln (dynamische Berechnung)
+  - Automatische Aktualisierung bei Wertänderungen in Excel
+- **Korrekte Datenformate**:
+  - Datumsfelder als Excel-Datumsformat (DD.MM.YYYY)
+  - Währungsfelder als Euro-Format (#,##0.00 €)
+  - Prozentwerte als Prozentformat (0.00%)
+- **Tabellarische Präzision**:
+  - Umsatzplanung-Tabelle (2.3) exakt übernommen
+  - Berichtspflichten-Matrix (3.1) vollständig dargestellt
+  - Verwendungsnachweis-Tabelle (4.2) mit allen Details
+- **Export-Button**: Neuer Button in der Vertragsdetailansicht zum direkten Export
+
+### Technische Änderungen
+- **ExcelJS-Bibliothek**: Professionelle Excel-Dateigenerierung
+- **API-Route**: `/api/contracts/[id]/export` für Excel-Generierung
+- **ExportButton-Komponente**: Client-seitige Download-Funktionalität mit Ladeindikator
+
+---
+
 ## [0.4.0] - 2026-01-07
 
 ### Neu: Erweitertes Vertragsmodul mit 6 Sektionen

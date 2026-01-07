@@ -4,10 +4,6 @@ import {
   ArrowLeft,
   Pencil,
   Trash2,
-  Calendar,
-  Building,
-  Euro,
-  FileText,
   Clock,
   CheckCircle2,
   ClipboardList,
@@ -15,11 +11,13 @@ import {
   BarChart3,
   Check,
   X,
+  FileText,
+  Euro,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Accordion, AccordionGroup } from '@/components/ui/Accordion';
 import { prisma } from '@/lib/prisma';
 import {
@@ -33,6 +31,7 @@ import {
   getDeadlineStatusText,
 } from '@/lib/utils';
 import { KpiCard } from '@/components/contracts/KpiCard';
+import { ExportButton } from '@/components/contracts/ExportButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -128,6 +127,10 @@ export default async function VertragDetailPage({ params }: PageProps) {
             </Button>
           </Link>
           <div className="flex items-center gap-3">
+            <ExportButton 
+              contractId={contract.id} 
+              contractNumber={contract.contractNumber} 
+            />
             <Link href={`/vertraege/${contract.id}/bearbeiten`}>
               <Button variant="secondary" className="gap-2">
                 <Pencil className="w-4 h-4" />
