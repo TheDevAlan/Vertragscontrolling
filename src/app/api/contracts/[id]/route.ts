@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
+// Validierungs-Schema für Fristen
+const deadlineSchema = z.object({
+  id: z.string().optional(),
+  type: z.enum(['KUENDIGUNG', 'VERLAENGERUNG', 'PRUEFUNG', 'RECHNUNG', 'SONSTIGES']),
+  customLabel: z.string().optional(),
+  dueDate: z.string().min(1, 'Fristdatum erforderlich'),
+  reminderDays: z.number().min(0).default(30),
+  notifyEmail: z.string().email().optional().or(z.literal('')),
+  isCompleted: z.boolean().optional().default(false),
+});
+
 // Validierungs-Schema für Updates
 const updateSchema = z.object({
   title: z.string().min(1).optional(),
@@ -19,6 +30,7 @@ const updateSchema = z.object({
   autoRenewal: z.boolean().optional(),
   notes: z.string().optional(),
   reminderDays: z.number().min(0).optional(),
+  deadlines: z.array(deadlineSchema).optional(),
 });
 
 // GET: Einzelnen Vertrag abrufen
@@ -31,6 +43,9 @@ export async function GET(
       where: { id: params.id },
       include: {
         type: true,
+        deadlines: {
+          orderBy: { dueDate: 'asc' },
+        },
         createdBy: {
           select: {
             name: true,
@@ -111,12 +126,38 @@ export async function PUT(
     if (data.notes !== undefined) updateData.notes = data.notes || null;
     if (data.reminderDays !== undefined) updateData.reminderDays = data.reminderDays;
 
+    // Fristen verarbeiten (falls übergeben)
+    if (body.deadlines !== undefined) {
+      // Alle existierenden Fristen des Vertrags löschen
+      await prisma.deadline.deleteMany({
+        where: { contractId: params.id },
+      });
+
+      // Neue Fristen erstellen
+      if (body.deadlines.length > 0) {
+        await prisma.deadline.createMany({
+          data: body.deadlines.map((deadline: z.infer<typeof deadlineSchema>) => ({
+            contractId: params.id,
+            type: deadline.type,
+            customLabel: deadline.customLabel || null,
+            dueDate: new Date(deadline.dueDate),
+            reminderDays: deadline.reminderDays,
+            notifyEmail: deadline.notifyEmail || null,
+            isCompleted: deadline.isCompleted || false,
+          })),
+        });
+      }
+    }
+
     // Vertrag aktualisieren
     const contract = await prisma.contract.update({
       where: { id: params.id },
       data: updateData,
       include: {
         type: true,
+        deadlines: {
+          orderBy: { dueDate: 'asc' },
+        },
       },
     });
 

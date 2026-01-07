@@ -12,6 +12,12 @@ interface PageProps {
 const getContract = async (id: string) => {
   const contract = await prisma.contract.findUnique({
     where: { id },
+    include: {
+      type: true,
+      deadlines: {
+        orderBy: { dueDate: 'asc' },
+      },
+    },
   });
   return contract;
 };

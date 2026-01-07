@@ -4,6 +4,10 @@ export type Role = 'ADMIN' | 'USER' | 'VIEWER';
 
 export type ContractStatus = 'ACTIVE' | 'TERMINATED' | 'EXPIRED' | 'DRAFT';
 
+// Fristen-Typen
+export type DeadlineType = 'KUENDIGUNG' | 'VERLAENGERUNG' | 'PRUEFUNG' | 'RECHNUNG' | 'SONSTIGES';
+export type DeadlineStatus = 'ZUKUNFT' | 'KRITISCH' | 'ERLEDIGT' | 'VERPASST';
+
 export interface User {
   id: string;
   email: string;
@@ -54,6 +58,33 @@ export interface ContractWithType extends Contract {
   type: ContractType;
 }
 
+// Frist-Interface
+export interface Deadline {
+  id: string;
+  contractId: string;
+  type: DeadlineType;
+  customLabel: string | null;
+  dueDate: Date;
+  reminderDays: number;
+  notifyEmail: string | null;
+  isCompleted: boolean;
+  completedAt: Date | null;
+  reminderSent: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Frist mit berechnetem Status
+export interface DeadlineWithStatus extends Deadline {
+  status: DeadlineStatus;
+  daysUntilDue: number | null;
+}
+
+export interface ContractWithDeadlines extends Contract {
+  type: ContractType;
+  deadlines: Deadline[];
+}
+
 // Dashboard Statistiken
 export interface DashboardStats {
   totalContracts: number;
@@ -76,6 +107,16 @@ export interface ApiResponse<T> {
 }
 
 // Form Types
+export interface DeadlineFormData {
+  id?: string;
+  type: DeadlineType;
+  customLabel?: string;
+  dueDate: string;
+  reminderDays: number;
+  notifyEmail?: string;
+  isCompleted?: boolean;
+}
+
 export interface ContractFormData {
   contractNumber: string;
   title: string;
@@ -93,6 +134,7 @@ export interface ContractFormData {
   autoRenewal: boolean;
   notes?: string;
   reminderDays: number;
+  deadlines: DeadlineFormData[];
 }
 
 // Session erweiterter Typ

@@ -5,7 +5,7 @@ import { UpcomingDeadlines } from '@/components/dashboard/UpcomingDeadlines';
 import { ContractTypeChart } from '@/components/dashboard/ContractTypeChart';
 import { prisma } from '@/lib/prisma';
 import { formatCurrency } from '@/lib/utils';
-import type { ContractWithType, ContractTypeDistribution } from '@/types';
+import type { ContractTypeDistribution } from '@/types';
 
 // Diese Seite wird bei jedem Request neu gerendert
 export const dynamic = 'force-dynamic';
@@ -30,37 +30,33 @@ const getDashboardData = async () => {
     _sum: { value: true },
   });
 
-  // Verträge mit bald ablaufenden Fristen (nächste 90 Tage)
+  // Aktive Fristen (nicht erledigt, in den nächsten 90 Tagen oder überfällig)
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const in90Days = new Date();
   in90Days.setDate(today.getDate() + 90);
 
-  const expiringContracts = await prisma.contract.findMany({
+  const upcomingDeadlines = await prisma.deadline.findMany({
     where: {
-      status: 'ACTIVE',
-      OR: [
-        {
-          terminationDate: {
-            gte: today,
-            lte: in90Days,
-          },
-        },
-        {
-          endDate: {
-            gte: today,
-            lte: in90Days,
-          },
-        },
-      ],
+      isCompleted: false,
+      dueDate: {
+        lte: in90Days,
+      },
+      contract: {
+        status: 'ACTIVE',
+      },
     },
     include: {
-      type: true,
+      contract: {
+        include: {
+          type: true,
+        },
+      },
     },
-    orderBy: [
-      { terminationDate: 'asc' },
-      { endDate: 'asc' },
-    ],
-    take: 5,
+    orderBy: {
+      dueDate: 'asc',
+    },
+    take: 10,
   });
 
   // Verteilung nach Vertragsart
@@ -74,16 +70,16 @@ const getDashboardData = async () => {
     stats: {
       totalContracts,
       activeContracts,
-      expiringCount: expiringContracts.length,
+      expiringCount: upcomingDeadlines.length,
       totalValue: totalValue._sum.value || 0,
     },
-    expiringContracts: expiringContracts as ContractWithType[],
+    upcomingDeadlines,
     typeDistribution,
   };
 };
 
 export default async function DashboardPage() {
-  const { stats, expiringContracts, typeDistribution } = await getDashboardData();
+  const { stats, upcomingDeadlines, typeDistribution } = await getDashboardData();
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -124,7 +120,7 @@ export default async function DashboardPage() {
 
         {/* Charts und Listen */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <UpcomingDeadlines contracts={expiringContracts} />
+          <UpcomingDeadlines deadlines={upcomingDeadlines} />
           <ContractTypeChart data={typeDistribution} />
         </div>
       </div>

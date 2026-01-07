@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
+// Validierungs-Schema für Fristen
+const deadlineSchema = z.object({
+  id: z.string().optional(),
+  type: z.enum(['KUENDIGUNG', 'VERLAENGERUNG', 'PRUEFUNG', 'RECHNUNG', 'SONSTIGES']),
+  customLabel: z.string().optional(),
+  dueDate: z.string().min(1, 'Fristdatum erforderlich'),
+  reminderDays: z.number().min(0).default(30),
+  notifyEmail: z.string().email().optional().or(z.literal('')),
+  isCompleted: z.boolean().optional().default(false),
+});
+
 // Validierungs-Schema für Verträge
 const contractSchema = z.object({
   contractNumber: z.string().min(1, 'Vertragsnummer erforderlich'),
@@ -20,6 +31,7 @@ const contractSchema = z.object({
   autoRenewal: z.boolean().default(false),
   notes: z.string().optional(),
   reminderDays: z.number().min(0).default(30),
+  deadlines: z.array(deadlineSchema).optional().default([]),
 });
 
 // GET: Alle Verträge abrufen
@@ -37,6 +49,9 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         type: true,
+        deadlines: {
+          orderBy: { dueDate: 'asc' },
+        },
       },
       orderBy: [
         { status: 'asc' },
@@ -98,7 +113,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vertrag erstellen
+    // Vertrag erstellen mit Fristen
     const contract = await prisma.contract.create({
       data: {
         contractNumber: data.contractNumber,
@@ -118,9 +133,22 @@ export async function POST(request: NextRequest) {
         notes: data.notes || null,
         reminderDays: data.reminderDays,
         createdById: admin.id,
+        deadlines: {
+          create: data.deadlines.map((deadline) => ({
+            type: deadline.type,
+            customLabel: deadline.customLabel || null,
+            dueDate: new Date(deadline.dueDate),
+            reminderDays: deadline.reminderDays,
+            notifyEmail: deadline.notifyEmail || null,
+            isCompleted: deadline.isCompleted || false,
+          })),
+        },
       },
       include: {
         type: true,
+        deadlines: {
+          orderBy: { dueDate: 'asc' },
+        },
       },
     });
 

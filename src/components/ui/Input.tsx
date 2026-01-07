@@ -12,6 +12,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, helperText, type = 'text', id, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
+    const isDateInput = type === 'date';
 
     return (
       <div className="w-full">
@@ -27,6 +28,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={inputId}
           type={type}
+          lang={isDateInput ? 'de-DE' : undefined}
           className={cn(
             'w-full px-3 py-2 rounded-lg border bg-white text-slate-900 placeholder-slate-400',
             'transition-colors duration-200',

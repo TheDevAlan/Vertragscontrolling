@@ -52,8 +52,8 @@ model Contract {
   // Laufzeiten
   startDate        DateTime
   endDate          DateTime?
-  terminationDate  DateTime?      // Kündigungsfrist
-  noticePeriodDays Int       @default(30) // Kündigungsfrist in Tagen
+  terminationDate  DateTime?      // Kündigungsfrist (legacy)
+  noticePeriodDays Int       @default(30) // Kündigungsfrist in Tagen (legacy)
   
   // Finanzen
   value            Float?         // Vertragswert
@@ -68,9 +68,12 @@ model Contract {
   notes            String?
   documentPath     String?        // Pfad zum Vertragsdokument
   
-  // Erinnerungen
-  reminderDays     Int       @default(30) // Tage vor Ablauf
+  // Erinnerungen (legacy - wird durch Deadline ersetzt)
+  reminderDays     Int       @default(30)
   reminderSent     Boolean   @default(false)
+  
+  // Fristen
+  deadlines        Deadline[]
   
   // Metadaten
   createdById      String
@@ -79,6 +82,35 @@ model Contract {
   updatedAt        DateTime  @updatedAt
   
   @@map("contracts")
+}
+
+// Fristen pro Vertrag
+model Deadline {
+  id              String    @id @default(cuid())
+  contractId      String
+  contract        Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  
+  // Frist-Definition
+  type            String    // KUENDIGUNG, VERLAENGERUNG, PRUEFUNG, RECHNUNG, SONSTIGES
+  customLabel     String?   // Optionale benutzerdefinierte Bezeichnung
+  
+  // Fristdatum
+  dueDate         DateTime
+  
+  // Benachrichtigung
+  reminderDays    Int       @default(30) // 7, 14, 30, 90 Tage vor Frist
+  notifyEmail     String?   // E-Mail-Adresse für Benachrichtigung
+  
+  // Status
+  isCompleted     Boolean   @default(false)
+  completedAt     DateTime?
+  reminderSent    Boolean   @default(false)
+  
+  // Metadaten
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@map("deadlines")
 }
 
 // E-Mail Benachrichtigungen Log

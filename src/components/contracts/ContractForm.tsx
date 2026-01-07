@@ -2,16 +2,17 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, X } from 'lucide-react';
+import { Save, X, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { DateInput } from '@/components/ui/DateInput';
 import { Select } from '@/components/ui/Select';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/Card';
-import type { Contract, ContractType, ContractFormData } from '@/types';
-import { generateContractNumber } from '@/lib/utils';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import type { Contract, ContractType, ContractFormData, DeadlineFormData, ContractWithDeadlines } from '@/types';
+import { generateContractNumber, DEADLINE_TYPE_OPTIONS, REMINDER_PRESETS } from '@/lib/utils';
 
 interface ContractFormProps {
-  contract?: Contract;
+  contract?: ContractWithDeadlines;
   contractTypes: ContractType[];
   mode: 'create' | 'edit';
 }
@@ -20,6 +21,17 @@ export const ContractForm = ({ contract, contractTypes, mode }: ContractFormProp
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Existierende Fristen in FormData konvertieren
+  const existingDeadlines: DeadlineFormData[] = contract?.deadlines?.map((d) => ({
+    id: d.id,
+    type: d.type as DeadlineFormData['type'],
+    customLabel: d.customLabel || undefined,
+    dueDate: new Date(d.dueDate).toISOString().split('T')[0],
+    reminderDays: d.reminderDays,
+    notifyEmail: d.notifyEmail || undefined,
+    isCompleted: d.isCompleted,
+  })) || [];
 
   const [formData, setFormData] = useState<ContractFormData>({
     contractNumber: contract?.contractNumber || generateContractNumber(),
@@ -44,6 +56,7 @@ export const ContractForm = ({ contract, contractTypes, mode }: ContractFormProp
     autoRenewal: contract?.autoRenewal || false,
     notes: contract?.notes || '',
     reminderDays: contract?.reminderDays || 30,
+    deadlines: existingDeadlines,
   });
 
   const handleChange = (
@@ -73,8 +86,53 @@ export const ContractForm = ({ contract, contractTypes, mode }: ContractFormProp
     if (!formData.typeId) newErrors.typeId = 'Vertragsart ist erforderlich';
     if (!formData.startDate) newErrors.startDate = 'Startdatum ist erforderlich';
 
+    // Fristen validieren
+    formData.deadlines.forEach((deadline, index) => {
+      if (!deadline.dueDate) {
+        newErrors[`deadline_${index}_dueDate`] = 'Fristdatum ist erforderlich';
+      }
+    });
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Neue Frist hinzufügen
+  const handleAddDeadline = () => {
+    setFormData((prev) => ({
+      ...prev,
+      deadlines: [
+        ...prev.deadlines,
+        {
+          type: 'KUENDIGUNG',
+          dueDate: '',
+          reminderDays: 30,
+          notifyEmail: '',
+        },
+      ],
+    }));
+  };
+
+  // Frist entfernen
+  const handleRemoveDeadline = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      deadlines: prev.deadlines.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Frist aktualisieren
+  const handleDeadlineChange = (
+    index: number,
+    field: keyof DeadlineFormData,
+    value: string | number | boolean
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      deadlines: prev.deadlines.map((deadline, i) =>
+        i === index ? { ...deadline, [field]: value } : deadline
+      ),
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -193,25 +251,22 @@ export const ContractForm = ({ contract, contractTypes, mode }: ContractFormProp
             <CardTitle>Laufzeiten</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Input
+            <DateInput
               label="Startdatum"
               name="startDate"
-              type="date"
               value={formData.startDate}
               onChange={handleChange}
               error={errors.startDate}
             />
-            <Input
+            <DateInput
               label="Enddatum"
               name="endDate"
-              type="date"
               value={formData.endDate}
               onChange={handleChange}
             />
-            <Input
+            <DateInput
               label="Kündigungsfrist bis"
               name="terminationDate"
-              type="date"
               value={formData.terminationDate}
               onChange={handleChange}
               helperText="Datum, bis zu dem gekündigt werden muss"
@@ -277,10 +332,115 @@ export const ContractForm = ({ contract, contractTypes, mode }: ContractFormProp
           </CardContent>
         </Card>
 
-        {/* Status & Erinnerungen */}
+        {/* Fristen */}
         <Card>
           <CardHeader>
-            <CardTitle>Status & Erinnerungen</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Fristen</CardTitle>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleAddDeadline}
+                className="gap-1"
+              >
+                <Plus className="w-4 h-4" />
+                Frist hinzufügen
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {formData.deadlines.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-4">
+                Noch keine Fristen hinzugefügt. Klicken Sie auf &quot;Frist hinzufügen&quot;.
+              </p>
+            ) : (
+              formData.deadlines.map((deadline, index) => (
+                <div
+                  key={index}
+                  className="p-4 border border-slate-200 rounded-lg space-y-4 bg-slate-50/50"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-700">
+                      Frist #{index + 1}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveDeadline(index)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Definition */}
+                    <Select
+                      label="Definition"
+                      value={deadline.type}
+                      onChange={(e) =>
+                        handleDeadlineChange(index, 'type', e.target.value)
+                      }
+                      options={DEADLINE_TYPE_OPTIONS.map((opt) => ({
+                        value: opt.value,
+                        label: opt.label,
+                      }))}
+                    />
+                    {/* Fristdatum */}
+                    <DateInput
+                      label="Fristdatum"
+                      name={`deadline_${index}_dueDate`}
+                      value={deadline.dueDate}
+                      onChange={(e) =>
+                        handleDeadlineChange(index, 'dueDate', e.target.value)
+                      }
+                      error={errors[`deadline_${index}_dueDate`]}
+                    />
+                    {/* Benachrichtigung */}
+                    <Select
+                      label="Benachrichtigung"
+                      value={deadline.reminderDays.toString()}
+                      onChange={(e) =>
+                        handleDeadlineChange(index, 'reminderDays', parseInt(e.target.value))
+                      }
+                      options={REMINDER_PRESETS.map((opt) => ({
+                        value: opt.value.toString(),
+                        label: opt.label,
+                      }))}
+                    />
+                    {/* E-Mail */}
+                    <Input
+                      label="Benachrichtigen an"
+                      type="email"
+                      value={deadline.notifyEmail || ''}
+                      onChange={(e) =>
+                        handleDeadlineChange(index, 'notifyEmail', e.target.value)
+                      }
+                      placeholder="email@beispiel.de"
+                    />
+                  </div>
+                  {/* Optionale benutzerdefinierte Bezeichnung bei Sonstiges */}
+                  {deadline.type === 'SONSTIGES' && (
+                    <Input
+                      label="Benutzerdefinierte Bezeichnung"
+                      value={deadline.customLabel || ''}
+                      onChange={(e) =>
+                        handleDeadlineChange(index, 'customLabel', e.target.value)
+                      }
+                      placeholder="z.B. Vertragsprüfung Q3"
+                    />
+                  )}
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Status & Notizen */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Status & Notizen</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Select
@@ -290,15 +450,7 @@ export const ContractForm = ({ contract, contractTypes, mode }: ContractFormProp
               onChange={handleChange}
               options={statusOptions}
             />
-            <Input
-              label="Erinnerung (Tage vor Frist)"
-              name="reminderDays"
-              type="number"
-              value={formData.reminderDays}
-              onChange={handleChange}
-              min={0}
-              helperText="E-Mail-Erinnerung X Tage vor Kündigungsfrist"
-            />
+            <div />
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 Notizen

@@ -8,14 +8,24 @@ import {
   Building,
   Euro,
   FileText,
-  Bell,
+  Clock,
+  CheckCircle2,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { prisma } from '@/lib/prisma';
-import { formatDate, formatCurrency, getStatusText, daysUntil } from '@/lib/utils';
+import {
+  formatDate,
+  formatCurrency,
+  getStatusText,
+  daysUntil,
+  getDeadlineTypeText,
+  getDeadlineStatus,
+  getDeadlineStatusColor,
+  getDeadlineStatusText,
+} from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +38,9 @@ const getContract = async (id: string) => {
     where: { id },
     include: {
       type: true,
+      deadlines: {
+        orderBy: { dueDate: 'asc' },
+      },
       createdBy: {
         select: {
           name: true,
@@ -91,22 +104,33 @@ export default async function VertragDetailPage({ params }: PageProps) {
         </div>
 
         {/* Status-Banner bei dringenden Fristen */}
-        {contract.status === 'ACTIVE' &&
-          daysToTermination !== null &&
-          daysToTermination <= 30 &&
-          daysToTermination >= 0 && (
+        {contract.status === 'ACTIVE' && contract.deadlines && (() => {
+          // Finde die nächste kritische oder bald fällige Frist
+          const criticalDeadline = contract.deadlines.find((d) => {
+            if (d.isCompleted) return false;
+            const days = daysUntil(d.dueDate);
+            return days !== null && days >= 0 && days <= 30;
+          });
+          
+          if (!criticalDeadline) return null;
+          
+          const daysLeft = daysUntil(criticalDeadline.dueDate) ?? 0;
+          const deadlineLabel = criticalDeadline.customLabel || getDeadlineTypeText(criticalDeadline.type);
+          
+          return (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
-              <Bell className="w-5 h-5 text-amber-600" />
+              <Clock className="w-5 h-5 text-amber-600" />
               <div>
                 <p className="font-medium text-amber-800">
-                  Kündigungsfrist läuft in {daysToTermination} Tagen ab!
+                  {deadlineLabel} in {daysLeft} {daysLeft === 1 ? 'Tag' : 'Tagen'}!
                 </p>
                 <p className="text-sm text-amber-700">
-                  Bitte prüfen Sie, ob der Vertrag gekündigt oder verlängert werden soll.
+                  Bitte prüfen Sie die anstehende Frist und ergreifen Sie ggf. Maßnahmen.
                 </p>
               </div>
             </div>
-          )}
+          );
+        })()}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Hauptinformationen */}
@@ -263,25 +287,67 @@ export default async function VertragDetailPage({ params }: PageProps) {
               </CardContent>
             </Card>
 
-            {/* Erinnerungen */}
+            {/* Fristen */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Bell className="w-5 h-5 text-primary-600" />
-                  Erinnerungen
+                  <Clock className="w-5 h-5 text-primary-600" />
+                  Fristen
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-slate-500">Erinnerung vor Frist</p>
-                  <p className="font-medium">{contract.reminderDays} Tage</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Erinnerung gesendet</p>
-                  <p className="font-medium">
-                    {contract.reminderSent ? 'Ja' : 'Nein'}
+                {contract.deadlines && contract.deadlines.length > 0 ? (
+                  contract.deadlines.map((deadline) => {
+                    const { status, daysUntil: daysLeft } = getDeadlineStatus(
+                      deadline.dueDate,
+                      deadline.isCompleted
+                    );
+                    return (
+                      <div
+                        key={deadline.id}
+                        className="p-3 rounded-lg border border-slate-200 space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-sm">
+                            {deadline.customLabel || getDeadlineTypeText(deadline.type)}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs font-medium ${getDeadlineStatusColor(status)}`}
+                          >
+                            {getDeadlineStatusText(status)}
+                          </span>
+                        </div>
+                        <div className="text-sm text-slate-600">
+                          <p>Fällig: {formatDate(deadline.dueDate)}</p>
+                          {status !== 'ERLEDIGT' && status !== 'VERPASST' && daysLeft !== null && (
+                            <p className={status === 'KRITISCH' ? 'text-amber-600 font-medium' : ''}>
+                              Noch {daysLeft} {daysLeft === 1 ? 'Tag' : 'Tage'}
+                            </p>
+                          )}
+                          {status === 'VERPASST' && daysLeft !== null && (
+                            <p className="text-red-600 font-medium">
+                              {Math.abs(daysLeft)} {Math.abs(daysLeft) === 1 ? 'Tag' : 'Tage'} überfällig
+                            </p>
+                          )}
+                          {status === 'ERLEDIGT' && (
+                            <p className="text-green-600 flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" /> Erledigt
+                            </p>
+                          )}
+                        </div>
+                        {deadline.notifyEmail && (
+                          <p className="text-xs text-slate-500">
+                            Benachrichtigung an: {deadline.notifyEmail}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-slate-500 text-center py-2">
+                    Keine Fristen hinterlegt
                   </p>
-                </div>
+                )}
               </CardContent>
             </Card>
 
