@@ -42,8 +42,18 @@ model Contract {
   id               String    @id @default(cuid())
   contractNumber   String    @unique
   title            String
+  titleShort       String?        // Abkürzung
   partner          String
   description      String?
+  
+  // === SEKTION 1: Stammdaten ===
+  esfNumber        String?        // ESF-Nummer
+  client           String?        // Auftraggeber
+  projectLead      String?        // Projektleitung
+  company          String?        // Gesellschaft
+  costCenter       String?        // Kostenstelle
+  basisDocument    String?        // Grundlage (Angebot/Kalkulation)
+  dataMatchesContract Boolean @default(true) // Daten entsprechen dem Vertrag/Zuwendungsbescheid
   
   // Vertragsart
   typeId           String
@@ -55,14 +65,29 @@ model Contract {
   terminationDate  DateTime?      // Kündigungsfrist (legacy)
   noticePeriodDays Int       @default(30) // Kündigungsfrist in Tagen (legacy)
   
-  // Finanzen
-  value            Float?         // Vertragswert
+  // === SEKTION 2: Umsatzplanung & Finanzen ===
+  revenueNet       Float?         // Umsatz Netto
+  revenueTax       Float?         // MwSt (19%)
+  revenueGross     Float?         // Umsatz Brutto
+  paymentMethod    String?        // Zahlungsart (Freitext)
+  
+  // Legacy Finanzen
+  value            Float?         // Vertragswert (legacy)
   currency         String    @default("EUR")
   paymentInterval  String?        // monatlich, jährlich, einmalig
   
   // Status (ACTIVE, TERMINATED, EXPIRED, DRAFT)
   status           String    @default("ACTIVE")
   autoRenewal      Boolean   @default(false)
+  
+  // === SEKTION 3: Berichtspflichten ===
+  reportsLinkedToPayment Boolean @default(false) // Berichtspflichten mit Auszahlung gekoppelt?
+  additionalObligations  String?  // Weitere Pflichten (TextArea)
+  refundDeadline   DateTime?      // Mittel sind zurückzuzahlen bis
+  
+  // === SEKTION 4: Verwendungsnachweis ===
+  proofOfUseRequired Boolean @default(false) // Verwendungsnachweis erforderlich?
+  proofOfUseRemarks  String?  // Weitere Bemerkungen zum Verwendungsnachweis
   
   // Notizen & Dokumente
   notes            String?
@@ -72,11 +97,12 @@ model Contract {
   reminderDays     Int       @default(30)
   reminderSent     Boolean   @default(false)
   
-  // Fristen
+  // Relationen
   deadlines        Deadline[]
-  
-  // Kennzahlen
   kpis             ContractKpi[]
+  revenuePlan      RevenuePlanEntry[]
+  reportDuties     ReportDuty[]
+  proofOfUseItems  ProofOfUseItem[]
   
   // Metadaten
   createdById      String
@@ -85,6 +111,67 @@ model Contract {
   updatedAt        DateTime  @updatedAt
   
   @@map("contracts")
+}
+
+// Umsatzplanung pro Jahr (Sektion 2.3)
+model RevenuePlanEntry {
+  id          String   @id @default(cuid())
+  contractId  String
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  
+  label       String   // z.B. "Eigenleistung", "Unterauftragnehmer XY"
+  year2024    Float    @default(0)
+  year2025    Float    @default(0)
+  year2026    Float    @default(0)
+  year2027    Float    @default(0)
+  year2028    Float    @default(0)
+  year2029    Float    @default(0)
+  
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("revenue_plan_entries")
+}
+
+// Berichtspflichten Matrix (Sektion 3.1)
+model ReportDuty {
+  id          String   @id @default(cuid())
+  contractId  String
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  
+  reportType  String   // Berichtsart
+  year2024    String?  // Kreuz, Datum oder leer
+  year2025    String?
+  year2026    String?
+  year2027    String?
+  year2028    String?
+  year2029    String?
+  remarks     String?  // Bemerkungen
+  
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("report_duties")
+}
+
+// Verwendungsnachweis Tabelle (Sektion 4.2)
+model ProofOfUseItem {
+  id              String   @id @default(cuid())
+  contractId      String
+  contract        Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  
+  sequenceNumber  Int      // Lfd.-Nr.
+  dueDate         DateTime // Termin
+  proofType       String   // Art des VN/Abrechnung
+  auditorRequired Boolean  @default(false) // Wirtschaftsprüfertestat notwendig
+  
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("proof_of_use_items")
 }
 
 // Fristen pro Vertrag

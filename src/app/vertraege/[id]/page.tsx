@@ -10,12 +10,17 @@ import {
   FileText,
   Clock,
   CheckCircle2,
+  ClipboardList,
+  FileCheck,
   BarChart3,
+  Check,
+  X,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Accordion, AccordionGroup } from '@/components/ui/Accordion';
 import { prisma } from '@/lib/prisma';
 import {
   formatDate,
@@ -48,9 +53,18 @@ const getContract = async (id: string) => {
           kpiType: true,
           history: {
             orderBy: { changedAt: 'desc' },
-            take: 5,
+            take: 10,
           },
         },
+      },
+      revenuePlan: {
+        orderBy: { sortOrder: 'asc' },
+      },
+      reportDuties: {
+        orderBy: { sortOrder: 'asc' },
+      },
+      proofOfUseItems: {
+        orderBy: { sequenceNumber: 'asc' },
       },
       createdBy: {
         select: {
@@ -71,7 +85,6 @@ export default async function VertragDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const daysToTermination = daysUntil(contract.terminationDate);
   const daysToEnd = daysUntil(contract.endDate);
 
   const getStatusBadgeVariant = (status: string) => {
@@ -87,9 +100,23 @@ export default async function VertragDetailPage({ params }: PageProps) {
     }
   };
 
+  // Summen für Umsatzplanung berechnen
+  const revenuePlanTotals = {
+    year2024: contract.revenuePlan?.reduce((sum, r) => sum + r.year2024, 0) || 0,
+    year2025: contract.revenuePlan?.reduce((sum, r) => sum + r.year2025, 0) || 0,
+    year2026: contract.revenuePlan?.reduce((sum, r) => sum + r.year2026, 0) || 0,
+    year2027: contract.revenuePlan?.reduce((sum, r) => sum + r.year2027, 0) || 0,
+    year2028: contract.revenuePlan?.reduce((sum, r) => sum + r.year2028, 0) || 0,
+    year2029: contract.revenuePlan?.reduce((sum, r) => sum + r.year2029, 0) || 0,
+    total: 0,
+  };
+  revenuePlanTotals.total = Object.values(revenuePlanTotals).reduce((a, b) => a + b, 0);
+
+  const years = ['2024', '2025', '2026', '2027', '2028', '2029'] as const;
+
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header title={contract.title} subtitle={contract.contractNumber} />
+      <Header title={contract.title} subtitle={`${contract.contractNumber}${contract.titleShort ? ` (${contract.titleShort})` : ''}`} />
 
       <div className="p-6 space-y-6">
         {/* Aktionsleiste */}
@@ -116,7 +143,6 @@ export default async function VertragDetailPage({ params }: PageProps) {
 
         {/* Status-Banner bei dringenden Fristen */}
         {contract.status === 'ACTIVE' && contract.deadlines && (() => {
-          // Finde die nächste kritische oder bald fällige Frist
           const criticalDeadline = contract.deadlines.find((d) => {
             if (d.isCompleted) return false;
             const days = daysUntil(d.dueDate);
@@ -143,200 +169,396 @@ export default async function VertragDetailPage({ params }: PageProps) {
           );
         })()}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Hauptinformationen */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Übersicht */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-primary-600" />
-                    Vertragsdetails
-                  </CardTitle>
-                  <Badge variant={getStatusBadgeVariant(contract.status)}>
-                    {getStatusText(contract.status)}
-                  </Badge>
+        {/* Status-Badge und Quick Info */}
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-500">Status:</span>
+                <Badge variant={getStatusBadgeVariant(contract.status)}>
+                  {getStatusText(contract.status)}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-500">Vertragsart:</span>
+                <span className="flex items-center gap-1.5 font-medium">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: contract.type.color }} />
+                  {contract.type.name}
+                </span>
+              </div>
+              {contract.revenueGross && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-500">Volumen:</span>
+                  <span className="font-medium text-primary-600">
+                    {formatCurrency(contract.revenueGross, 'EUR')}
+                  </span>
                 </div>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm text-slate-500">Vertragsnummer</p>
-                  <p className="font-mono font-medium">{contract.contractNumber}</p>
+              )}
+              {contract.endDate && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-500">Laufzeit:</span>
+                  <span className="font-medium">
+                    {formatDate(contract.startDate)} – {formatDate(contract.endDate)}
+                    {daysToEnd !== null && daysToEnd > 0 && (
+                      <span className="text-slate-500 text-sm ml-1">
+                        ({daysToEnd} Tage)
+                      </span>
+                    )}
+                  </span>
                 </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <AccordionGroup>
+          {/* Sektion 1: Stammdaten */}
+          <Accordion
+            title="1. Stammdaten"
+            icon={<FileText className="w-5 h-5" />}
+            defaultOpen={true}
+          >
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div>
+                <p className="text-sm text-slate-500">Projektbezeichnung</p>
+                <p className="font-medium">{contract.title}</p>
+              </div>
+              {contract.titleShort && (
                 <div>
-                  <p className="text-sm text-slate-500">Vertragsart</p>
-                  <p className="font-medium flex items-center gap-2">
-                    <span
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: contract.type.color }}
-                    />
-                    {contract.type.name}
+                  <p className="text-sm text-slate-500">Abkürzung</p>
+                  <p className="font-medium">{contract.titleShort}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-slate-500">Vertragsnummer</p>
+                <p className="font-mono font-medium">{contract.contractNumber}</p>
+              </div>
+              {contract.esfNumber && (
+                <div>
+                  <p className="text-sm text-slate-500">ESF-Nummer</p>
+                  <p className="font-mono font-medium">{contract.esfNumber}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-slate-500">Laufzeit</p>
+                <p className="font-medium">
+                  {formatDate(contract.startDate)} – {formatDate(contract.endDate) || '–'}
+                </p>
+              </div>
+              {contract.client && (
+                <div>
+                  <p className="text-sm text-slate-500">Auftraggeber</p>
+                  <p className="font-medium">{contract.client}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-slate-500">Vertragspartner</p>
+                <p className="font-medium">{contract.partner}</p>
+              </div>
+              {contract.projectLead && (
+                <div>
+                  <p className="text-sm text-slate-500">Projektleitung</p>
+                  <p className="font-medium">{contract.projectLead}</p>
+                </div>
+              )}
+              {contract.company && (
+                <div>
+                  <p className="text-sm text-slate-500">Gesellschaft</p>
+                  <p className="font-medium">{contract.company}</p>
+                </div>
+              )}
+              {contract.costCenter && (
+                <div>
+                  <p className="text-sm text-slate-500">Kostenstelle</p>
+                  <p className="font-medium">{contract.costCenter}</p>
+                </div>
+              )}
+              {contract.basisDocument && (
+                <div>
+                  <p className="text-sm text-slate-500">Grundlage</p>
+                  <p className="font-medium">{contract.basisDocument}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-slate-500">Daten entsprechen Vertrag</p>
+                <p className="font-medium flex items-center gap-1">
+                  {contract.dataMatchesContract ? (
+                    <><Check className="w-4 h-4 text-green-600" /> Ja</>
+                  ) : (
+                    <><X className="w-4 h-4 text-red-600" /> Nein</>
+                  )}
+                </p>
+              </div>
+              {contract.description && (
+                <div className="col-span-full">
+                  <p className="text-sm text-slate-500">Beschreibung</p>
+                  <p className="text-slate-700 whitespace-pre-wrap">{contract.description}</p>
+                </div>
+              )}
+            </div>
+          </Accordion>
+
+          {/* Sektion 2: Umsatzplanung & Finanzen */}
+          <Accordion
+            title="2. Umsatzplanung & Finanzen"
+            icon={<Euro className="w-5 h-5" />}
+            badge={contract.revenueGross ? <Badge variant="success">{formatCurrency(contract.revenueGross, 'EUR')}</Badge> : undefined}
+          >
+            <div className="space-y-6">
+              {/* 2.1 Umsatz */}
+              <div>
+                <h4 className="text-sm font-medium text-slate-700 mb-3">2.1 Umsatz</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="p-4 bg-slate-50 rounded-lg">
+                    <p className="text-sm text-slate-500">Netto</p>
+                    <p className="text-xl font-bold">{formatCurrency(contract.revenueNet, 'EUR')}</p>
+                  </div>
+                  <div className="p-4 bg-slate-50 rounded-lg">
+                    <p className="text-sm text-slate-500">MwSt (19%)</p>
+                    <p className="text-xl font-bold">{formatCurrency(contract.revenueTax, 'EUR')}</p>
+                  </div>
+                  <div className="p-4 bg-primary-50 rounded-lg">
+                    <p className="text-sm text-primary-600">Brutto</p>
+                    <p className="text-xl font-bold text-primary-700">{formatCurrency(contract.revenueGross, 'EUR')}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2.2 Zahlungsart */}
+              {contract.paymentMethod && (
+                <div>
+                  <h4 className="text-sm font-medium text-slate-700 mb-2">2.2 Zahlungsart</h4>
+                  <p className="text-slate-700">{contract.paymentMethod}</p>
+                </div>
+              )}
+
+              {/* 2.3 Umsatzplanung */}
+              {contract.revenuePlan && contract.revenuePlan.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-slate-700 mb-3">2.3 Umsatzplanung nach Jahren</h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-slate-50">
+                          <th className="px-3 py-2 text-left font-medium text-slate-700">Bezeichnung</th>
+                          {years.map((year) => (
+                            <th key={year} className="px-3 py-2 text-right font-medium text-slate-700">{year}</th>
+                          ))}
+                          <th className="px-3 py-2 text-right font-medium text-slate-700">Gesamt</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {contract.revenuePlan.map((entry) => {
+                          const rowTotal = entry.year2024 + entry.year2025 + entry.year2026 + entry.year2027 + entry.year2028 + entry.year2029;
+                          return (
+                            <tr key={entry.id} className="border-b border-slate-100">
+                              <td className="px-3 py-2">{entry.label}</td>
+                              {years.map((year) => (
+                                <td key={year} className="px-3 py-2 text-right">
+                                  {formatCurrency(entry[`year${year}` as keyof typeof entry] as number, 'EUR')}
+                                </td>
+                              ))}
+                              <td className="px-3 py-2 text-right font-medium">{formatCurrency(rowTotal, 'EUR')}</td>
+                            </tr>
+                          );
+                        })}
+                        <tr className="bg-slate-50 font-medium">
+                          <td className="px-3 py-2">Summe</td>
+                          {years.map((year) => (
+                            <td key={year} className="px-3 py-2 text-right">
+                              {formatCurrency(revenuePlanTotals[`year${year}` as keyof typeof revenuePlanTotals], 'EUR')}
+                            </td>
+                          ))}
+                          <td className="px-3 py-2 text-right">{formatCurrency(revenuePlanTotals.total / 2, 'EUR')}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Accordion>
+
+          {/* Sektion 3: Berichtspflichten */}
+          <Accordion
+            title="3. Berichtspflichten"
+            icon={<ClipboardList className="w-5 h-5" />}
+            badge={contract.reportDuties && contract.reportDuties.length > 0 ? <Badge variant="info">{contract.reportDuties.length} Einträge</Badge> : undefined}
+          >
+            <div className="space-y-6">
+              {/* 3.1 Berichtspflichten Matrix */}
+              {contract.reportDuties && contract.reportDuties.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-slate-700 mb-3">3.1 Berichtspflichten</h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-slate-50">
+                          <th className="px-3 py-2 text-left font-medium text-slate-700">Berichtsart</th>
+                          {years.map((year) => (
+                            <th key={year} className="px-3 py-2 text-center font-medium text-slate-700">{year}</th>
+                          ))}
+                          <th className="px-3 py-2 text-left font-medium text-slate-700">Bemerkungen</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {contract.reportDuties.map((duty) => (
+                          <tr key={duty.id} className="border-b border-slate-100">
+                            <td className="px-3 py-2 font-medium">{duty.reportType}</td>
+                            {years.map((year) => (
+                              <td key={year} className="px-3 py-2 text-center">
+                                {duty[`year${year}` as keyof typeof duty] || '–'}
+                              </td>
+                            ))}
+                            <td className="px-3 py-2 text-slate-600">{duty.remarks || '–'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 3.2 & 3.3 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-sm font-medium text-slate-700 mb-2">3.2 Berichtspflichten mit Auszahlung gekoppelt</h4>
+                  <p className="font-medium flex items-center gap-1">
+                    {contract.reportsLinkedToPayment ? (
+                      <><Check className="w-4 h-4 text-green-600" /> Ja</>
+                    ) : (
+                      <><X className="w-4 h-4 text-slate-400" /> Nein</>
+                    )}
                   </p>
                 </div>
-                <div className="col-span-2">
-                  <p className="text-sm text-slate-500">Bezeichnung</p>
-                  <p className="font-medium text-lg">{contract.title}</p>
-                </div>
-                {contract.description && (
-                  <div className="col-span-2">
-                    <p className="text-sm text-slate-500">Beschreibung</p>
-                    <p className="text-slate-700">{contract.description}</p>
+                {contract.refundDeadline && (
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-700 mb-2">3.4 Mittel sind zurückzuzahlen bis</h4>
+                    <p className="font-medium text-amber-600">{formatDate(contract.refundDeadline)}</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
 
-            {/* Vertragspartner */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building className="w-5 h-5 text-primary-600" />
-                  Vertragspartner
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="font-medium text-lg">{contract.partner}</p>
-              </CardContent>
-            </Card>
-
-            {/* Laufzeiten */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-primary-600" />
-                  Laufzeiten
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              {contract.additionalObligations && (
                 <div>
-                  <p className="text-sm text-slate-500">Vertragsbeginn</p>
-                  <p className="font-medium">{formatDate(contract.startDate)}</p>
+                  <h4 className="text-sm font-medium text-slate-700 mb-2">3.3 Weitere Pflichten</h4>
+                  <p className="text-slate-700 whitespace-pre-wrap bg-slate-50 p-3 rounded-lg">{contract.additionalObligations}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-slate-500">Vertragsende</p>
-                  <p className="font-medium">{formatDate(contract.endDate)}</p>
-                  {daysToEnd !== null && daysToEnd > 0 && (
-                    <p className="text-sm text-slate-500">
-                      (noch {daysToEnd} Tage)
-                    </p>
+              )}
+            </div>
+          </Accordion>
+
+          {/* Sektion 4: Verwendungsnachweis */}
+          <Accordion
+            title="4. Verwendungsnachweis"
+            icon={<FileCheck className="w-5 h-5" />}
+            badge={contract.proofOfUseRequired ? <Badge variant="warning">Erforderlich</Badge> : <Badge variant="default">Nicht erforderlich</Badge>}
+          >
+            <div className="space-y-6">
+              <div>
+                <h4 className="text-sm font-medium text-slate-700 mb-2">4.1 Verwendungsnachweis erforderlich</h4>
+                <p className="font-medium flex items-center gap-1">
+                  {contract.proofOfUseRequired ? (
+                    <><Check className="w-4 h-4 text-amber-600" /> Ja</>
+                  ) : (
+                    <><X className="w-4 h-4 text-slate-400" /> Nein</>
                   )}
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Kündigungsfrist bis</p>
-                  <p
-                    className={
-                      daysToTermination !== null && daysToTermination <= 30
-                        ? 'font-medium text-amber-600'
-                        : 'font-medium'
-                    }
-                  >
-                    {formatDate(contract.terminationDate)}
-                  </p>
-                  {daysToTermination !== null && daysToTermination >= 0 && (
-                    <p
-                      className={
-                        daysToTermination <= 30
-                          ? 'text-sm text-amber-600 font-medium'
-                          : 'text-sm text-slate-500'
-                      }
-                    >
-                      (noch {daysToTermination} Tage)
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Kündigungsfrist</p>
-                  <p className="font-medium">{contract.noticePeriodDays} Tage</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Auto. Verlängerung</p>
-                  <p className="font-medium">
-                    {contract.autoRenewal ? 'Ja' : 'Nein'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                </p>
+              </div>
 
-            {/* Kennzahlen */}
-            {contract.kpis && contract.kpis.length > 0 && (
+              {contract.proofOfUseRequired && contract.proofOfUseItems && contract.proofOfUseItems.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-slate-700 mb-3">4.2 Verwendungsnachweise</h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-slate-50">
+                          <th className="px-3 py-2 text-center font-medium text-slate-700">Lfd.-Nr.</th>
+                          <th className="px-3 py-2 text-left font-medium text-slate-700">Termin</th>
+                          <th className="px-3 py-2 text-left font-medium text-slate-700">Art des VN/Abrechnung</th>
+                          <th className="px-3 py-2 text-center font-medium text-slate-700">WP-Testat</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {contract.proofOfUseItems.map((item) => (
+                          <tr key={item.id} className="border-b border-slate-100">
+                            <td className="px-3 py-2 text-center">{item.sequenceNumber}</td>
+                            <td className="px-3 py-2">{formatDate(item.dueDate)}</td>
+                            <td className="px-3 py-2">{item.proofType}</td>
+                            <td className="px-3 py-2 text-center">
+                              {item.auditorRequired ? (
+                                <Check className="w-4 h-4 text-green-600 mx-auto" />
+                              ) : (
+                                <X className="w-4 h-4 text-slate-300 mx-auto" />
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {contract.proofOfUseRemarks && (
+                <div>
+                  <h4 className="text-sm font-medium text-slate-700 mb-2">4.3 Bemerkungen zum Verwendungsnachweis</h4>
+                  <p className="text-slate-700 whitespace-pre-wrap bg-slate-50 p-3 rounded-lg">{contract.proofOfUseRemarks}</p>
+                </div>
+              )}
+            </div>
+          </Accordion>
+
+          {/* Sektion 5: Kennzahlen */}
+          {contract.kpis && contract.kpis.length > 0 && (
+            <Accordion
+              title="5. Steuerung von Kennzahlen"
+              icon={<BarChart3 className="w-5 h-5" />}
+              badge={<Badge variant="info">{contract.kpis.length} KPIs</Badge>}
+              defaultOpen={true}
+            >
               <KpiCard kpis={contract.kpis} />
-            )}
+            </Accordion>
+          )}
 
-            {/* Notizen */}
-            {contract.notes && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Notizen</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-700 whitespace-pre-wrap">
-                    {contract.notes}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Seitenleiste */}
-          <div className="space-y-6">
-            {/* Finanzen */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Euro className="w-5 h-5 text-primary-600" />
-                  Finanzen
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-slate-500">Vertragswert</p>
-                  <p className="text-2xl font-bold text-slate-900">
-                    {formatCurrency(contract.value, contract.currency)}
-                  </p>
-                  {contract.paymentInterval && (
-                    <p className="text-sm text-slate-500">
-                      {contract.paymentInterval}
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Fristen */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-primary-600" />
-                  Fristen
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {contract.deadlines && contract.deadlines.length > 0 ? (
-                  contract.deadlines.map((deadline) => {
-                    const { status, daysUntil: daysLeft } = getDeadlineStatus(
-                      deadline.dueDate,
-                      deadline.isCompleted
-                    );
-                    return (
-                      <div
-                        key={deadline.id}
-                        className="p-3 rounded-lg border border-slate-200 space-y-2"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-sm">
-                            {deadline.customLabel || getDeadlineTypeText(deadline.type)}
-                          </span>
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-xs font-medium ${getDeadlineStatusColor(status)}`}
-                          >
-                            {getDeadlineStatusText(status)}
-                          </span>
+          {/* Sektion 6: Fristen */}
+          <Accordion
+            title="6. Fristen"
+            icon={<Clock className="w-5 h-5" />}
+            badge={contract.deadlines && contract.deadlines.length > 0 ? <Badge variant="info">{contract.deadlines.length} Fristen</Badge> : undefined}
+            defaultOpen={true}
+          >
+            <div className="space-y-3">
+              {contract.deadlines && contract.deadlines.length > 0 ? (
+                contract.deadlines.map((deadline) => {
+                  const { status, daysUntil: daysLeft } = getDeadlineStatus(
+                    deadline.dueDate,
+                    deadline.isCompleted
+                  );
+                  return (
+                    <div
+                      key={deadline.id}
+                      className="p-4 rounded-lg border border-slate-200 bg-white space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">
+                          {deadline.customLabel || getDeadlineTypeText(deadline.type)}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${getDeadlineStatusColor(status)}`}
+                        >
+                          {getDeadlineStatusText(status)}
+                        </span>
+                      </div>
+                      <div className="text-sm text-slate-600 grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-slate-500 text-xs">Fällig am</p>
+                          <p className="font-medium">{formatDate(deadline.dueDate)}</p>
                         </div>
-                        <div className="text-sm text-slate-600">
-                          <p>Fällig: {formatDate(deadline.dueDate)}</p>
+                        <div>
+                          <p className="text-slate-500 text-xs">Countdown</p>
                           {status !== 'ERLEDIGT' && status !== 'VERPASST' && daysLeft !== null && (
-                            <p className={status === 'KRITISCH' ? 'text-amber-600 font-medium' : ''}>
+                            <p className={status === 'KRITISCH' ? 'text-amber-600 font-medium' : 'font-medium'}>
                               Noch {daysLeft} {daysLeft === 1 ? 'Tag' : 'Tage'}
                             </p>
                           )}
@@ -346,53 +568,63 @@ export default async function VertragDetailPage({ params }: PageProps) {
                             </p>
                           )}
                           {status === 'ERLEDIGT' && (
-                            <p className="text-green-600 flex items-center gap-1">
+                            <p className="text-green-600 font-medium flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3" /> Erledigt
                             </p>
                           )}
                         </div>
+                        <div>
+                          <p className="text-slate-500 text-xs">Erinnerung</p>
+                          <p className="font-medium">{deadline.reminderDays} Tage vorher</p>
+                        </div>
                         {deadline.notifyEmail && (
-                          <p className="text-xs text-slate-500">
-                            Benachrichtigung an: {deadline.notifyEmail}
-                          </p>
+                          <div>
+                            <p className="text-slate-500 text-xs">Benachrichtigung an</p>
+                            <p className="font-medium truncate">{deadline.notifyEmail}</p>
+                          </div>
                         )}
                       </div>
-                    );
-                  })
-                ) : (
-                  <p className="text-sm text-slate-500 text-center py-2">
-                    Keine Fristen hinterlegt
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-slate-500 text-center py-4">
+                  Keine Fristen hinterlegt
+                </p>
+              )}
+            </div>
+          </Accordion>
 
-            {/* Metadaten */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Metadaten</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-sm">
-                <div>
-                  <p className="text-slate-500">Erstellt von</p>
-                  <p className="font-medium">
-                    {contract.createdBy?.name || contract.createdBy?.email}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-slate-500">Erstellt am</p>
-                  <p className="font-medium">{formatDate(contract.createdAt)}</p>
-                </div>
-                <div>
-                  <p className="text-slate-500">Zuletzt geändert</p>
-                  <p className="font-medium">{formatDate(contract.updatedAt)}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+          {/* Notizen */}
+          {contract.notes && (
+            <Accordion title="Notizen">
+              <p className="text-slate-700 whitespace-pre-wrap">{contract.notes}</p>
+            </Accordion>
+          )}
+
+          {/* Metadaten */}
+          <Accordion title="Metadaten" defaultOpen={false}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <p className="text-slate-500">Erstellt von</p>
+                <p className="font-medium">{contract.createdBy?.name || contract.createdBy?.email}</p>
+              </div>
+              <div>
+                <p className="text-slate-500">Erstellt am</p>
+                <p className="font-medium">{formatDate(contract.createdAt)}</p>
+              </div>
+              <div>
+                <p className="text-slate-500">Zuletzt geändert</p>
+                <p className="font-medium">{formatDate(contract.updatedAt)}</p>
+              </div>
+              <div>
+                <p className="text-slate-500">ID</p>
+                <p className="font-mono text-xs">{contract.id}</p>
+              </div>
+            </div>
+          </Accordion>
+        </AccordionGroup>
       </div>
     </div>
   );
 }
-

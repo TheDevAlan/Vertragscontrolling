@@ -1,5 +1,59 @@
 # Changelog
 
+## [0.4.0] - 2026-01-07
+
+### Neu: Erweitertes Vertragsmodul mit 6 Sektionen
+- **Einklappbare Accordions**: Alle Sektionen in übersichtlichen, einklappbaren Containern organisiert
+- **Sektion 1: Stammdaten**: Projektbezeichnung, Abkürzung, Vertragsnummer, ESF-Nummer, Auftraggeber, Projektleitung, Gesellschaft, Kostenstelle, Grundlage, Vertragspartner
+- **Sektion 2: Umsatzplanung & Finanzen**: 
+  - Umsatzberechnung: Netto, automatische MwSt (19%), automatisches Brutto
+  - Zahlungsart (Freitext)
+  - Tabellarische Jahresplanung (2024-2029) mit dynamischen Zeilen
+  - Automatische Gesamt-Spalten und Summenzeilen
+  - **Validierung**: Rote Warnung bei Abweichung zwischen Jahresplanung und Netto-Umsatz
+- **Sektion 3: Berichtspflichten**:
+  - Matrix-Tabelle: Berichtsart × Jahre (2024-2029) mit Bemerkungen
+  - Radio-Buttons: "Berichtspflichten mit Auszahlung gekoppelt?"
+  - Textfeld für weitere Pflichten
+  - Rückzahlungsfrist-Datumsfeld (wird automatisch als Frist angelegt)
+- **Sektion 4: Verwendungsnachweis**:
+  - Konditionale Anzeige via Radio-Buttons (Ja/Nein)
+  - Tabelle mit: Lfd.-Nr., Termin, Art des VN/Abrechnung, WP-Testat (Checkbox)
+  - Textfeld für weitere Bemerkungen zum Verwendungsnachweis
+- **Sektion 5: Steuerung von Kennzahlen** (unverändert)
+- **Sektion 6: Fristen** (unverändert)
+
+### UI-Verbesserungen
+- **Neue Accordion-Komponente**: Einklappbare Container mit Icons und Badges
+- **Section-Komponenten**: Modulare, wiederverwendbare Formular-Sektionen
+- **Verbesserte Validierung**: Umfassende Fehlerprüfung für alle Pflichtfelder
+- **Bessere UX**: Badges zeigen Ausfüllstatus und Anzahl der Einträge pro Sektion
+
+### Detailansicht
+- **Vollständige Accordion-Struktur**: Alle 6 Sektionen übersichtlich dargestellt
+- **Umsatzplanung-Tabelle**: Formatierte Darstellung mit Summenberechnung
+- **Berichtspflichten-Matrix**: Übersichtliche Tabellenansicht
+- **Verwendungsnachweis-Tabelle**: Klare Struktur mit Checkboxen für WP-Testat
+
+### Technische Änderungen
+- **Neue Prisma-Modelle**: 
+  - `RevenuePlanEntry` für Umsatzplanung pro Jahr
+  - `ReportDuty` für Berichtspflichten-Matrix
+  - `ProofOfUseItem` für Verwendungsnachweis-Einträge
+- **Erweiterte Contract-Felder**: 
+  - Stammdaten: titleShort, esfNumber, client, projectLead, company, costCenter, basisDocument, dataMatchesContract
+  - Umsatzplanung: revenueNet, revenueTax, revenueGross, paymentMethod
+  - Berichtspflichten: reportsLinkedToPayment, additionalObligations, refundDeadline
+  - Verwendungsnachweis: proofOfUseRequired, proofOfUseRemarks
+- **API-Routen erweitert**: Vollständige Unterstützung für alle neuen Datenstrukturen in POST und PUT
+- **Automatische Frist-Erstellung**: Rückzahlungsfrist wird bei Erstellung und Bearbeitung automatisch als Frist angelegt
+- **TypeScript-Typen**: Umfassende Typisierung für alle neuen Formular-Sektionen
+
+### Bugfixes
+- Automatische Erstellung der Rückzahlungsfrist bei Vertrags-Bearbeitung funktioniert jetzt korrekt
+
+---
+
 ## [0.3.0] - 2026-01-07
 
 ### Neu: Steuerung von Kennzahlen (KPIs)

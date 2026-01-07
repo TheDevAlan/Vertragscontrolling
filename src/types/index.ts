@@ -34,19 +34,47 @@ export interface Contract {
   id: string;
   contractNumber: string;
   title: string;
+  titleShort: string | null;
   partner: string;
   description: string | null;
+  
+  // Sektion 1: Stammdaten
+  esfNumber: string | null;
+  client: string | null;
+  projectLead: string | null;
+  company: string | null;
+  costCenter: string | null;
+  basisDocument: string | null;
+  dataMatchesContract: boolean;
+  
   typeId: string;
   type?: ContractType;
   startDate: Date;
   endDate: Date | null;
   terminationDate: Date | null;
   noticePeriodDays: number;
+  
+  // Sektion 2: Umsatzplanung & Finanzen
+  revenueNet: number | null;
+  revenueTax: number | null;
+  revenueGross: number | null;
+  paymentMethod: string | null;
+  
   value: number | null;
   currency: string;
   paymentInterval: string | null;
   status: ContractStatus;
   autoRenewal: boolean;
+  
+  // Sektion 3: Berichtspflichten
+  reportsLinkedToPayment: boolean;
+  additionalObligations: string | null;
+  refundDeadline: Date | null;
+  
+  // Sektion 4: Verwendungsnachweis
+  proofOfUseRequired: boolean;
+  proofOfUseRemarks: string | null;
+  
   notes: string | null;
   documentPath: string | null;
   reminderDays: number;
@@ -55,6 +83,46 @@ export interface Contract {
   createdBy?: User;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Umsatzplanung Eintrag
+export interface RevenuePlanEntry {
+  id: string;
+  contractId: string;
+  label: string;
+  year2024: number;
+  year2025: number;
+  year2026: number;
+  year2027: number;
+  year2028: number;
+  year2029: number;
+  sortOrder: number;
+}
+
+// Berichtspflichten Eintrag
+export interface ReportDuty {
+  id: string;
+  contractId: string;
+  reportType: string;
+  year2024: string | null;
+  year2025: string | null;
+  year2026: string | null;
+  year2027: string | null;
+  year2028: string | null;
+  year2029: string | null;
+  remarks: string | null;
+  sortOrder: number;
+}
+
+// Verwendungsnachweis Eintrag
+export interface ProofOfUseItem {
+  id: string;
+  contractId: string;
+  sequenceNumber: number;
+  dueDate: Date;
+  proofType: string;
+  auditorRequired: boolean;
+  sortOrder: number;
 }
 
 export interface ContractWithType extends Contract {
@@ -130,6 +198,16 @@ export interface ContractWithKpis extends ContractWithDeadlines {
   kpis: ContractKpi[];
 }
 
+// Erweiterter Vertrag mit allen Relationen
+export interface ContractFull extends Contract {
+  type: ContractType;
+  deadlines: Deadline[];
+  kpis: ContractKpi[];
+  revenuePlan: RevenuePlanEntry[];
+  reportDuties: ReportDuty[];
+  proofOfUseItems: ProofOfUseItem[];
+}
+
 // Dashboard Statistiken
 export interface DashboardStats {
   totalContracts: number;
@@ -170,14 +248,57 @@ export interface KpiFormData {
   dueDate?: string;
 }
 
+// Form Types für neue Sektionen
+export interface RevenuePlanFormData {
+  id?: string;
+  label: string;
+  year2024: number;
+  year2025: number;
+  year2026: number;
+  year2027: number;
+  year2028: number;
+  year2029: number;
+}
+
+export interface ReportDutyFormData {
+  id?: string;
+  reportType: string;
+  year2024?: string;
+  year2025?: string;
+  year2026?: string;
+  year2027?: string;
+  year2028?: string;
+  year2029?: string;
+  remarks?: string;
+}
+
+export interface ProofOfUseFormData {
+  id?: string;
+  sequenceNumber: number;
+  dueDate: string;
+  proofType: string;
+  auditorRequired: boolean;
+}
+
 export interface ContractFormData {
+  // Sektion 1: Stammdaten
   contractNumber: string;
   title: string;
+  titleShort?: string;
   partner: string;
   description?: string;
+  esfNumber?: string;
+  client?: string;
+  projectLead?: string;
+  company?: string;
+  costCenter?: string;
+  basisDocument?: string;
+  dataMatchesContract: boolean;
   typeId: string;
   startDate: string;
   endDate?: string;
+  
+  // Legacy Felder
   terminationDate?: string;
   noticePeriodDays: number;
   value?: number;
@@ -185,8 +306,30 @@ export interface ContractFormData {
   paymentInterval?: string;
   status: ContractStatus;
   autoRenewal: boolean;
+  
+  // Sektion 2: Umsatzplanung & Finanzen
+  revenueNet?: number;
+  revenueTax?: number;
+  revenueGross?: number;
+  paymentMethod?: string;
+  revenuePlan: RevenuePlanFormData[];
+  
+  // Sektion 3: Berichtspflichten
+  reportsLinkedToPayment: boolean;
+  additionalObligations?: string;
+  refundDeadline?: string;
+  reportDuties: ReportDutyFormData[];
+  
+  // Sektion 4: Verwendungsnachweis
+  proofOfUseRequired: boolean;
+  proofOfUseRemarks?: string;
+  proofOfUseItems: ProofOfUseFormData[];
+  
+  // Sonstige
   notes?: string;
   reminderDays: number;
+  
+  // Sektion 5 & 6: Kennzahlen und Fristen (unverändert)
   deadlines: DeadlineFormData[];
   kpis: KpiFormData[];
 }

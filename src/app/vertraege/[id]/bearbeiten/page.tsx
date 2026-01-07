@@ -22,6 +22,15 @@ const getContract = async (id: string) => {
           kpiType: true,
         },
       },
+      revenuePlan: {
+        orderBy: { sortOrder: 'asc' },
+      },
+      reportDuties: {
+        orderBy: { sortOrder: 'asc' },
+      },
+      proofOfUseItems: {
+        orderBy: { sequenceNumber: 'asc' },
+      },
     },
   });
   return contract;

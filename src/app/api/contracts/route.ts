@@ -22,15 +22,60 @@ const kpiSchema = z.object({
   dueDate: z.string().optional(),
 });
 
+// Validierungs-Schema für Umsatzplanung
+const revenuePlanSchema = z.object({
+  id: z.string().optional(),
+  label: z.string(),
+  year2024: z.number().default(0),
+  year2025: z.number().default(0),
+  year2026: z.number().default(0),
+  year2027: z.number().default(0),
+  year2028: z.number().default(0),
+  year2029: z.number().default(0),
+});
+
+// Validierungs-Schema für Berichtspflichten
+const reportDutySchema = z.object({
+  id: z.string().optional(),
+  reportType: z.string(),
+  year2024: z.string().optional(),
+  year2025: z.string().optional(),
+  year2026: z.string().optional(),
+  year2027: z.string().optional(),
+  year2028: z.string().optional(),
+  year2029: z.string().optional(),
+  remarks: z.string().optional(),
+});
+
+// Validierungs-Schema für Verwendungsnachweis
+const proofOfUseSchema = z.object({
+  id: z.string().optional(),
+  sequenceNumber: z.number(),
+  dueDate: z.string(),
+  proofType: z.string(),
+  auditorRequired: z.boolean().default(false),
+});
+
 // Validierungs-Schema für Verträge
 const contractSchema = z.object({
+  // Sektion 1: Stammdaten
   contractNumber: z.string().min(1, 'Vertragsnummer erforderlich'),
   title: z.string().min(1, 'Bezeichnung erforderlich'),
+  titleShort: z.string().optional(),
   partner: z.string().min(1, 'Vertragspartner erforderlich'),
   description: z.string().optional(),
+  esfNumber: z.string().optional(),
+  client: z.string().optional(),
+  projectLead: z.string().optional(),
+  company: z.string().optional(),
+  costCenter: z.string().optional(),
+  basisDocument: z.string().optional(),
+  dataMatchesContract: z.boolean().default(true),
   typeId: z.string().min(1, 'Vertragsart erforderlich'),
   startDate: z.string().min(1, 'Startdatum erforderlich'),
   endDate: z.string().optional(),
+  
+  // Legacy
   terminationDate: z.string().optional(),
   noticePeriodDays: z.number().min(0).default(30),
   value: z.number().optional(),
@@ -38,8 +83,30 @@ const contractSchema = z.object({
   paymentInterval: z.string().optional(),
   status: z.enum(['ACTIVE', 'TERMINATED', 'EXPIRED', 'DRAFT']).default('ACTIVE'),
   autoRenewal: z.boolean().default(false),
+  
+  // Sektion 2: Umsatzplanung
+  revenueNet: z.number().optional(),
+  revenueTax: z.number().optional(),
+  revenueGross: z.number().optional(),
+  paymentMethod: z.string().optional(),
+  revenuePlan: z.array(revenuePlanSchema).optional().default([]),
+  
+  // Sektion 3: Berichtspflichten
+  reportsLinkedToPayment: z.boolean().default(false),
+  additionalObligations: z.string().optional(),
+  refundDeadline: z.string().optional(),
+  reportDuties: z.array(reportDutySchema).optional().default([]),
+  
+  // Sektion 4: Verwendungsnachweis
+  proofOfUseRequired: z.boolean().default(false),
+  proofOfUseRemarks: z.string().optional(),
+  proofOfUseItems: z.array(proofOfUseSchema).optional().default([]),
+  
+  // Sonstige
   notes: z.string().optional(),
   reminderDays: z.number().min(0).default(30),
+  
+  // Sektion 5 & 6
   deadlines: z.array(deadlineSchema).optional().default([]),
   kpis: z.array(kpiSchema).optional().default([]),
 });
@@ -66,6 +133,15 @@ export async function GET(request: NextRequest) {
           include: {
             kpiType: true,
           },
+        },
+        revenuePlan: {
+          orderBy: { sortOrder: 'asc' },
+        },
+        reportDuties: {
+          orderBy: { sortOrder: 'asc' },
+        },
+        proofOfUseItems: {
+          orderBy: { sequenceNumber: 'asc' },
         },
       },
       orderBy: [
@@ -128,16 +204,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vertrag erstellen mit Fristen und Kennzahlen
+    // Automatische Rückzahlungsfrist-Deadline erstellen
+    const deadlines = [...data.deadlines];
+    if (data.refundDeadline) {
+      deadlines.push({
+        type: 'SONSTIGES' as const,
+        customLabel: 'Rückzahlung Mittel',
+        dueDate: data.refundDeadline,
+        reminderDays: 30,
+        notifyEmail: '',
+        isCompleted: false,
+      });
+    }
+
+    // Vertrag erstellen mit allen Relationen
     const contract = await prisma.contract.create({
       data: {
+        // Sektion 1: Stammdaten
         contractNumber: data.contractNumber,
         title: data.title,
+        titleShort: data.titleShort || null,
         partner: data.partner,
         description: data.description || null,
+        esfNumber: data.esfNumber || null,
+        client: data.client || null,
+        projectLead: data.projectLead || null,
+        company: data.company || null,
+        costCenter: data.costCenter || null,
+        basisDocument: data.basisDocument || null,
+        dataMatchesContract: data.dataMatchesContract,
         typeId: data.typeId,
         startDate: new Date(data.startDate),
         endDate: data.endDate ? new Date(data.endDate) : null,
+        
+        // Legacy
         terminationDate: data.terminationDate ? new Date(data.terminationDate) : null,
         noticePeriodDays: data.noticePeriodDays,
         value: data.value || null,
@@ -145,11 +245,30 @@ export async function POST(request: NextRequest) {
         paymentInterval: data.paymentInterval || null,
         status: data.status,
         autoRenewal: data.autoRenewal,
+        
+        // Sektion 2: Umsatzplanung
+        revenueNet: data.revenueNet || null,
+        revenueTax: data.revenueNet ? data.revenueNet * 0.19 : null,
+        revenueGross: data.revenueNet ? data.revenueNet * 1.19 : null,
+        paymentMethod: data.paymentMethod || null,
+        
+        // Sektion 3: Berichtspflichten
+        reportsLinkedToPayment: data.reportsLinkedToPayment,
+        additionalObligations: data.additionalObligations || null,
+        refundDeadline: data.refundDeadline ? new Date(data.refundDeadline) : null,
+        
+        // Sektion 4: Verwendungsnachweis
+        proofOfUseRequired: data.proofOfUseRequired,
+        proofOfUseRemarks: data.proofOfUseRemarks || null,
+        
+        // Sonstige
         notes: data.notes || null,
         reminderDays: data.reminderDays,
         createdById: admin.id,
+        
+        // Relationen
         deadlines: {
-          create: data.deadlines.map((deadline) => ({
+          create: deadlines.map((deadline) => ({
             type: deadline.type,
             customLabel: deadline.customLabel || null,
             dueDate: new Date(deadline.dueDate),
@@ -166,6 +285,40 @@ export async function POST(request: NextRequest) {
             dueDate: kpi.dueDate ? new Date(kpi.dueDate) : null,
           })),
         },
+        revenuePlan: {
+          create: data.revenuePlan.map((entry, index) => ({
+            label: entry.label,
+            year2024: entry.year2024,
+            year2025: entry.year2025,
+            year2026: entry.year2026,
+            year2027: entry.year2027,
+            year2028: entry.year2028,
+            year2029: entry.year2029,
+            sortOrder: index,
+          })),
+        },
+        reportDuties: {
+          create: data.reportDuties.map((duty, index) => ({
+            reportType: duty.reportType,
+            year2024: duty.year2024 || null,
+            year2025: duty.year2025 || null,
+            year2026: duty.year2026 || null,
+            year2027: duty.year2027 || null,
+            year2028: duty.year2028 || null,
+            year2029: duty.year2029 || null,
+            remarks: duty.remarks || null,
+            sortOrder: index,
+          })),
+        },
+        proofOfUseItems: {
+          create: data.proofOfUseItems.map((item, index) => ({
+            sequenceNumber: item.sequenceNumber,
+            dueDate: new Date(item.dueDate),
+            proofType: item.proofType,
+            auditorRequired: item.auditorRequired,
+            sortOrder: index,
+          })),
+        },
       },
       include: {
         type: true,
@@ -176,6 +329,15 @@ export async function POST(request: NextRequest) {
           include: {
             kpiType: true,
           },
+        },
+        revenuePlan: {
+          orderBy: { sortOrder: 'asc' },
+        },
+        reportDuties: {
+          orderBy: { sortOrder: 'asc' },
+        },
+        proofOfUseItems: {
+          orderBy: { sequenceNumber: 'asc' },
         },
       },
     });
@@ -189,4 +351,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

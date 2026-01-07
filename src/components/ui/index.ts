@@ -6,4 +6,5 @@ export { Select } from './Select';
 export { Badge } from './Badge';
 export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './Table';
 export { Modal } from './Modal';
+export { Accordion, AccordionGroup } from './Accordion';
 
