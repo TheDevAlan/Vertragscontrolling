@@ -13,6 +13,15 @@ const deadlineSchema = z.object({
   isCompleted: z.boolean().optional().default(false),
 });
 
+// Validierungs-Schema für Kennzahlen
+const kpiSchema = z.object({
+  id: z.string().optional(),
+  kpiTypeId: z.string().min(1, 'Kennzahl erforderlich'),
+  targetValue: z.number(),
+  currentValue: z.number().optional().default(0),
+  dueDate: z.string().optional(),
+});
+
 // Validierungs-Schema für Verträge
 const contractSchema = z.object({
   contractNumber: z.string().min(1, 'Vertragsnummer erforderlich'),
@@ -32,6 +41,7 @@ const contractSchema = z.object({
   notes: z.string().optional(),
   reminderDays: z.number().min(0).default(30),
   deadlines: z.array(deadlineSchema).optional().default([]),
+  kpis: z.array(kpiSchema).optional().default([]),
 });
 
 // GET: Alle Verträge abrufen
@@ -51,6 +61,11 @@ export async function GET(request: NextRequest) {
         type: true,
         deadlines: {
           orderBy: { dueDate: 'asc' },
+        },
+        kpis: {
+          include: {
+            kpiType: true,
+          },
         },
       },
       orderBy: [
@@ -113,7 +128,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vertrag erstellen mit Fristen
+    // Vertrag erstellen mit Fristen und Kennzahlen
     const contract = await prisma.contract.create({
       data: {
         contractNumber: data.contractNumber,
@@ -143,11 +158,24 @@ export async function POST(request: NextRequest) {
             isCompleted: deadline.isCompleted || false,
           })),
         },
+        kpis: {
+          create: data.kpis.map((kpi) => ({
+            kpiTypeId: kpi.kpiTypeId,
+            targetValue: kpi.targetValue,
+            currentValue: kpi.currentValue || 0,
+            dueDate: kpi.dueDate ? new Date(kpi.dueDate) : null,
+          })),
+        },
       },
       include: {
         type: true,
         deadlines: {
           orderBy: { dueDate: 'asc' },
+        },
+        kpis: {
+          include: {
+            kpiType: true,
+          },
         },
       },
     });

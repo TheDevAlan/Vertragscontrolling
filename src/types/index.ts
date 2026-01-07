@@ -8,6 +8,9 @@ export type ContractStatus = 'ACTIVE' | 'TERMINATED' | 'EXPIRED' | 'DRAFT';
 export type DeadlineType = 'KUENDIGUNG' | 'VERLAENGERUNG' | 'PRUEFUNG' | 'RECHNUNG' | 'SONSTIGES';
 export type DeadlineStatus = 'ZUKUNFT' | 'KRITISCH' | 'ERLEDIGT' | 'VERPASST';
 
+// Kennzahlen-Typen
+export type KpiDataType = 'NUMBER' | 'PERCENT' | 'CURRENCY';
+
 export interface User {
   id: string;
   email: string;
@@ -85,6 +88,48 @@ export interface ContractWithDeadlines extends Contract {
   deadlines: Deadline[];
 }
 
+// Kennzahlen-Interfaces
+export interface KpiType {
+  id: string;
+  name: string;
+  dataType: KpiDataType;
+  unit: string | null;
+  description: string | null;
+  color: string;
+  createdAt: Date;
+  updatedAt: Date;
+  _count?: {
+    contractKpis: number;
+  };
+}
+
+export interface KpiHistory {
+  id: string;
+  contractKpiId: string;
+  previousValue: number;
+  newValue: number;
+  changedAt: Date;
+  changedBy: string | null;
+  note: string | null;
+}
+
+export interface ContractKpi {
+  id: string;
+  contractId: string;
+  kpiTypeId: string;
+  kpiType?: KpiType;
+  targetValue: number;
+  currentValue: number;
+  dueDate: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  history?: KpiHistory[];
+}
+
+export interface ContractWithKpis extends ContractWithDeadlines {
+  kpis: ContractKpi[];
+}
+
 // Dashboard Statistiken
 export interface DashboardStats {
   totalContracts: number;
@@ -117,6 +162,14 @@ export interface DeadlineFormData {
   isCompleted?: boolean;
 }
 
+export interface KpiFormData {
+  id?: string;
+  kpiTypeId: string;
+  targetValue: number;
+  currentValue?: number;
+  dueDate?: string;
+}
+
 export interface ContractFormData {
   contractNumber: string;
   title: string;
@@ -135,6 +188,7 @@ export interface ContractFormData {
   notes?: string;
   reminderDays: number;
   deadlines: DeadlineFormData[];
+  kpis: KpiFormData[];
 }
 
 // Session erweiterter Typ

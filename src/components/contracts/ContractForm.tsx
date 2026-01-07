@@ -8,16 +8,17 @@ import { Input } from '@/components/ui/Input';
 import { DateInput } from '@/components/ui/DateInput';
 import { Select } from '@/components/ui/Select';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import type { Contract, ContractType, ContractFormData, DeadlineFormData, ContractWithDeadlines } from '@/types';
+import type { ContractType, ContractFormData, DeadlineFormData, KpiFormData, ContractWithKpis, KpiType } from '@/types';
 import { generateContractNumber, DEADLINE_TYPE_OPTIONS, REMINDER_PRESETS } from '@/lib/utils';
 
 interface ContractFormProps {
-  contract?: ContractWithDeadlines;
+  contract?: ContractWithKpis;
   contractTypes: ContractType[];
+  kpiTypes: KpiType[];
   mode: 'create' | 'edit';
 }
 
-export const ContractForm = ({ contract, contractTypes, mode }: ContractFormProps) => {
+export const ContractForm = ({ contract, contractTypes, kpiTypes, mode }: ContractFormProps) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -31,6 +32,15 @@ export const ContractForm = ({ contract, contractTypes, mode }: ContractFormProp
     reminderDays: d.reminderDays,
     notifyEmail: d.notifyEmail || undefined,
     isCompleted: d.isCompleted,
+  })) || [];
+
+  // Existierende Kennzahlen in FormData konvertieren
+  const existingKpis: KpiFormData[] = contract?.kpis?.map((k) => ({
+    id: k.id,
+    kpiTypeId: k.kpiTypeId,
+    targetValue: k.targetValue,
+    currentValue: k.currentValue,
+    dueDate: k.dueDate ? new Date(k.dueDate).toISOString().split('T')[0] : undefined,
   })) || [];
 
   const [formData, setFormData] = useState<ContractFormData>({
@@ -57,6 +67,7 @@ export const ContractForm = ({ contract, contractTypes, mode }: ContractFormProp
     notes: contract?.notes || '',
     reminderDays: contract?.reminderDays || 30,
     deadlines: existingDeadlines,
+    kpis: existingKpis,
   });
 
   const handleChange = (
@@ -133,6 +144,69 @@ export const ContractForm = ({ contract, contractTypes, mode }: ContractFormProp
         i === index ? { ...deadline, [field]: value } : deadline
       ),
     }));
+  };
+
+  // Neue Kennzahl hinzufügen
+  const handleAddKpi = () => {
+    // Nur Kennzahlen hinzufügen, die noch nicht ausgewählt wurden
+    const usedKpiTypeIds = formData.kpis.map((k) => k.kpiTypeId);
+    const availableKpiType = kpiTypes.find((t) => !usedKpiTypeIds.includes(t.id));
+    
+    if (!availableKpiType) {
+      alert('Alle verfügbaren Kennzahlen wurden bereits hinzugefügt.');
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      kpis: [
+        ...prev.kpis,
+        {
+          kpiTypeId: availableKpiType.id,
+          targetValue: 0,
+          currentValue: 0,
+          dueDate: '',
+        },
+      ],
+    }));
+  };
+
+  // Kennzahl entfernen
+  const handleRemoveKpi = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      kpis: prev.kpis.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Kennzahl aktualisieren
+  const handleKpiChange = (
+    index: number,
+    field: keyof KpiFormData,
+    value: string | number
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      kpis: prev.kpis.map((kpi, i) =>
+        i === index ? { ...kpi, [field]: value } : kpi
+      ),
+    }));
+  };
+
+  // Verfügbare Kennzahlen-Optionen (ohne bereits ausgewählte)
+  const getAvailableKpiOptions = (currentKpiTypeId: string) => {
+    const usedKpiTypeIds = formData.kpis
+      .map((k) => k.kpiTypeId)
+      .filter((id) => id !== currentKpiTypeId);
+    
+    return kpiTypes
+      .filter((t) => !usedKpiTypeIds.includes(t.id))
+      .map((t) => ({ value: t.id, label: t.name }));
+  };
+
+  // Kennzahl-Typ finden
+  const getKpiType = (kpiTypeId: string) => {
+    return kpiTypes.find((t) => t.id === kpiTypeId);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -294,6 +368,104 @@ export const ContractForm = ({ contract, contractTypes, mode }: ContractFormProp
             </div>
           </CardContent>
         </Card>
+
+        {/* Steuerung von Kennzahlen */}
+        {kpiTypes.length > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Steuerung von Kennzahlen</CardTitle>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleAddKpi}
+                  className="gap-1"
+                  disabled={formData.kpis.length >= kpiTypes.length}
+                >
+                  <Plus className="w-4 h-4" />
+                  Kennzahl hinzufügen
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {formData.kpis.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-4">
+                  Noch keine Kennzahlen hinzugefügt. Klicken Sie auf &quot;Kennzahl hinzufügen&quot;.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {formData.kpis.map((kpi, index) => {
+                    const kpiType = getKpiType(kpi.kpiTypeId);
+                    const unitLabel = kpiType?.dataType === 'PERCENT' ? '%' : 
+                                      kpiType?.dataType === 'CURRENCY' ? '€' : '';
+                    return (
+                      <div
+                        key={index}
+                        className="p-4 border border-slate-200 rounded-lg bg-slate-50/50 space-y-4"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-slate-700">
+                            Kennzahl #{index + 1}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveKpi(index)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                          <Select
+                            label="Kennzahl"
+                            value={kpi.kpiTypeId}
+                            onChange={(e) =>
+                              handleKpiChange(index, 'kpiTypeId', e.target.value)
+                            }
+                            options={getAvailableKpiOptions(kpi.kpiTypeId)}
+                          />
+                          <Input
+                            label={`Zielwert ${unitLabel}`}
+                            type="number"
+                            value={kpi.targetValue}
+                            onChange={(e) =>
+                              handleKpiChange(index, 'targetValue', parseFloat(e.target.value) || 0)
+                            }
+                            min={0}
+                            step={kpiType?.dataType === 'PERCENT' ? 1 : 0.01}
+                          />
+                          <DateInput
+                            label="Fristdatum"
+                            name={`kpi_${index}_dueDate`}
+                            value={kpi.dueDate || ''}
+                            onChange={(e) =>
+                              handleKpiChange(index, 'dueDate', e.target.value)
+                            }
+                          />
+                          {mode === 'edit' && (
+                            <Input
+                              label={`Aktueller Wert ${unitLabel}`}
+                              type="number"
+                              value={kpi.currentValue || 0}
+                              onChange={(e) =>
+                                handleKpiChange(index, 'currentValue', parseFloat(e.target.value) || 0)
+                              }
+                              min={0}
+                              step={kpiType?.dataType === 'PERCENT' ? 1 : 0.01}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Finanzen */}
         <Card>

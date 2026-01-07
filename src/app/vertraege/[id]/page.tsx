@@ -10,6 +10,7 @@ import {
   FileText,
   Clock,
   CheckCircle2,
+  BarChart3,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/Button';
@@ -26,6 +27,7 @@ import {
   getDeadlineStatusColor,
   getDeadlineStatusText,
 } from '@/lib/utils';
+import { KpiCard } from '@/components/contracts/KpiCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,6 +42,15 @@ const getContract = async (id: string) => {
       type: true,
       deadlines: {
         orderBy: { dueDate: 'asc' },
+      },
+      kpis: {
+        include: {
+          kpiType: true,
+          history: {
+            orderBy: { changedAt: 'desc' },
+            take: 5,
+          },
+        },
       },
       createdBy: {
         select: {
@@ -246,6 +257,11 @@ export default async function VertragDetailPage({ params }: PageProps) {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Kennzahlen */}
+            {contract.kpis && contract.kpis.length > 0 && (
+              <KpiCard kpis={contract.kpis} />
+            )}
 
             {/* Notizen */}
             {contract.notes && (

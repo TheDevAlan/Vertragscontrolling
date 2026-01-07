@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.3.0] - 2026-01-07
+
+### Neu: Steuerung von Kennzahlen (KPIs)
+- **Kennzahlen-Verwaltung** in Einstellungen: Beliebige KPIs definieren (Name, Datentyp, Farbe)
+- **Datentypen**: Zahl, Prozent (%), Währung (€)
+- **Vertragserstellung**: Kennzahlen auswählen und Zielwerte festlegen
+- **Inline-Bearbeitung**: Werte direkt in der Vertragsdetailansicht aktualisieren
+- **Änderungshistorie**: Alle Wertanpassungen mit Zeitstempel und optionaler Notiz
+
+### Kennzahlen-Darstellung
+- **Ampelsystem für Fortschritt**: Farbige Anzeige basierend auf Zielerreichung
+  - 🟢 Grün: ≥75% des Ziels erreicht
+  - 🟡 Gelb: 50-74% erreicht
+  - 🟠 Orange: 25-49% erreicht
+  - 🔴 Rot: <25% erreicht
+- **Fortschrittsbalken**: Visuelle Darstellung des aktuellen Stands
+- **Historie-Ansicht**: Änderungsverlauf per Klick einsehbar
+
+### Technische Änderungen
+- Neue Prisma-Modelle: `KpiType`, `ContractKpi`, `KpiHistory`
+- API-Routen: `/api/kpi-types`, `/api/contract-kpis/[id]`
+- Neue Komponente: `KpiCard` für Inline-Editing
+- TypeScript-Typen für KPIs erweitert
+
+---
+
 ## [0.2.0] - 2026-01-07
 
 ### Neu: Erweitertes Fristen-Management

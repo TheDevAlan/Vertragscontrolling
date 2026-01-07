@@ -17,6 +17,11 @@ const getContract = async (id: string) => {
       deadlines: {
         orderBy: { dueDate: 'asc' },
       },
+      kpis: {
+        include: {
+          kpiType: true,
+        },
+      },
     },
   });
   return contract;
@@ -28,10 +33,17 @@ const getContractTypes = async () => {
   });
 };
 
+const getKpiTypes = async () => {
+  return await prisma.kpiType.findMany({
+    orderBy: { name: 'asc' },
+  });
+};
+
 export default async function BearbeitenPage({ params }: PageProps) {
-  const [contract, contractTypes] = await Promise.all([
+  const [contract, contractTypes, kpiTypes] = await Promise.all([
     getContract(params.id),
     getContractTypes(),
+    getKpiTypes(),
   ]);
 
   if (!contract) {
@@ -49,6 +61,7 @@ export default async function BearbeitenPage({ params }: PageProps) {
         <ContractForm
           contract={contract}
           contractTypes={contractTypes}
+          kpiTypes={kpiTypes}
           mode="edit"
         />
       </div>

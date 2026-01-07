@@ -75,6 +75,9 @@ model Contract {
   // Fristen
   deadlines        Deadline[]
   
+  // Kennzahlen
+  kpis             ContractKpi[]
+  
   // Metadaten
   createdById      String
   createdBy        User      @relation("CreatedBy", fields: [createdById], references: [id])
@@ -123,4 +126,61 @@ model NotificationLog {
   success     Boolean
   
   @@map("notification_logs")
+}
+
+// Kennzahlen-Typen (Definition in Einstellungen)
+model KpiType {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  dataType    String   // NUMBER, PERCENT, CURRENCY
+  unit        String?  // z.B. "€", "%", "Stück"
+  description String?
+  color       String   @default("#3b82f6")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  contractKpis ContractKpi[]
+  
+  @@map("kpi_types")
+}
+
+// Kennzahlen pro Vertrag
+model ContractKpi {
+  id           String    @id @default(cuid())
+  contractId   String
+  contract     Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  kpiTypeId    String
+  kpiType      KpiType   @relation(fields: [kpiTypeId], references: [id], onDelete: Cascade)
+  
+  // Werte
+  targetValue  Float     // Zielwert
+  currentValue Float     @default(0) // Aktueller Wert
+  
+  // Fristdatum für die Ampel-Logik
+  dueDate      DateTime?
+  
+  // Metadaten
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  // Historie
+  history      KpiHistory[]
+  
+  @@unique([contractId, kpiTypeId])
+  @@map("contract_kpis")
+}
+
+// Historie der Kennzahlen-Änderungen
+model KpiHistory {
+  id            String      @id @default(cuid())
+  contractKpiId String
+  contractKpi   ContractKpi @relation(fields: [contractKpiId], references: [id], onDelete: Cascade)
+  
+  previousValue Float
+  newValue      Float
+  changedAt     DateTime    @default(now())
+  changedBy     String?     // User-ID oder Name
+  note          String?     // Optionale Notiz zur Änderung
+  
+  @@map("kpi_history")
 }

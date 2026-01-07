@@ -13,6 +13,15 @@ const deadlineSchema = z.object({
   isCompleted: z.boolean().optional().default(false),
 });
 
+// Validierungs-Schema für Kennzahlen
+const kpiSchema = z.object({
+  id: z.string().optional(),
+  kpiTypeId: z.string().min(1, 'Kennzahl erforderlich'),
+  targetValue: z.number(),
+  currentValue: z.number().optional().default(0),
+  dueDate: z.string().optional(),
+});
+
 // Validierungs-Schema für Updates
 const updateSchema = z.object({
   title: z.string().min(1).optional(),
@@ -31,6 +40,7 @@ const updateSchema = z.object({
   notes: z.string().optional(),
   reminderDays: z.number().min(0).optional(),
   deadlines: z.array(deadlineSchema).optional(),
+  kpis: z.array(kpiSchema).optional(),
 });
 
 // GET: Einzelnen Vertrag abrufen
@@ -45,6 +55,15 @@ export async function GET(
         type: true,
         deadlines: {
           orderBy: { dueDate: 'asc' },
+        },
+        kpis: {
+          include: {
+            kpiType: true,
+            history: {
+              orderBy: { changedAt: 'desc' },
+              take: 5,
+            },
+          },
         },
         createdBy: {
           select: {
@@ -149,6 +168,27 @@ export async function PUT(
       }
     }
 
+    // Kennzahlen verarbeiten (falls übergeben)
+    if (body.kpis !== undefined) {
+      // Alle existierenden KPIs des Vertrags löschen (inkl. Historie durch Cascade)
+      await prisma.contractKpi.deleteMany({
+        where: { contractId: params.id },
+      });
+
+      // Neue KPIs erstellen
+      if (body.kpis.length > 0) {
+        await prisma.contractKpi.createMany({
+          data: body.kpis.map((kpi: z.infer<typeof kpiSchema>) => ({
+            contractId: params.id,
+            kpiTypeId: kpi.kpiTypeId,
+            targetValue: kpi.targetValue,
+            currentValue: kpi.currentValue || 0,
+            dueDate: kpi.dueDate ? new Date(kpi.dueDate) : null,
+          })),
+        });
+      }
+    }
+
     // Vertrag aktualisieren
     const contract = await prisma.contract.update({
       where: { id: params.id },
@@ -157,6 +197,11 @@ export async function PUT(
         type: true,
         deadlines: {
           orderBy: { dueDate: 'asc' },
+        },
+        kpis: {
+          include: {
+            kpiType: true,
+          },
         },
       },
     });

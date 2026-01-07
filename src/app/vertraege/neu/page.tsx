@@ -10,8 +10,17 @@ const getContractTypes = async () => {
   });
 };
 
+const getKpiTypes = async () => {
+  return await prisma.kpiType.findMany({
+    orderBy: { name: 'asc' },
+  });
+};
+
 export default async function NeuerVertragPage() {
-  const contractTypes = await getContractTypes();
+  const [contractTypes, kpiTypes] = await Promise.all([
+    getContractTypes(),
+    getKpiTypes(),
+  ]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -21,7 +30,11 @@ export default async function NeuerVertragPage() {
       />
 
       <div className="p-6 max-w-4xl">
-        <ContractForm contractTypes={contractTypes} mode="create" />
+        <ContractForm
+          contractTypes={contractTypes}
+          kpiTypes={kpiTypes}
+          mode="create"
+        />
       </div>
     </div>
   );

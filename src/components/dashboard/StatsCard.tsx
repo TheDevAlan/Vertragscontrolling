@@ -10,7 +10,7 @@ interface StatsCardProps {
     value: number;
     isPositive: boolean;
   };
-  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger';
+  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
 }
 
 export const StatsCard = ({
@@ -46,6 +46,11 @@ export const StatsCard = ({
       bg: 'bg-white',
       iconBg: 'bg-red-100',
       iconColor: 'text-red-600',
+    },
+    info: {
+      bg: 'bg-white',
+      iconBg: 'bg-blue-100',
+      iconColor: 'text-blue-600',
     },
   };
 
