@@ -56,6 +56,16 @@ const proofOfUseSchema = z.object({
   auditorRequired: z.boolean().default(false),
 });
 
+// Validierungs-Schema für Checkliste (Sektion 7: Abschluss)
+const checklistItemSchema = z.object({
+  id: z.string().optional(),
+  category: z.enum(['MANAGEMENT', 'CONTROLLING', 'IT', 'QUALITAET', 'NACHHALTIGKEIT']),
+  label: z.string(),
+  assignee: z.string().optional(),
+  remark: z.string().optional(),
+  isCompleted: z.boolean().optional().default(false),
+});
+
 // Validierungs-Schema für Verträge
 const contractSchema = z.object({
   // Sektion 1: Stammdaten
@@ -109,6 +119,9 @@ const contractSchema = z.object({
   // Sektion 5 & 6
   deadlines: z.array(deadlineSchema).optional().default([]),
   kpis: z.array(kpiSchema).optional().default([]),
+  
+  // Sektion 7: Abschluss-Checkliste
+  checklistItems: z.array(checklistItemSchema).optional().default([]),
 });
 
 // GET: Alle Verträge abrufen
@@ -142,6 +155,9 @@ export async function GET(request: NextRequest) {
         },
         proofOfUseItems: {
           orderBy: { sequenceNumber: 'asc' },
+        },
+        checklistItems: {
+          orderBy: { sortOrder: 'asc' },
         },
       },
       orderBy: [
@@ -319,6 +335,16 @@ export async function POST(request: NextRequest) {
             sortOrder: index,
           })),
         },
+        checklistItems: {
+          create: data.checklistItems.map((item, index) => ({
+            category: item.category,
+            label: item.label,
+            assignee: item.assignee || null,
+            remark: item.remark || null,
+            isCompleted: item.isCompleted || false,
+            sortOrder: index,
+          })),
+        },
       },
       include: {
         type: true,
@@ -338,6 +364,9 @@ export async function POST(request: NextRequest) {
         },
         proofOfUseItems: {
           orderBy: { sequenceNumber: 'asc' },
+        },
+        checklistItems: {
+          orderBy: { sortOrder: 'asc' },
         },
       },
     });

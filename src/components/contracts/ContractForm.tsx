@@ -13,6 +13,7 @@ import {
   FileCheck,
   BarChart3,
   Clock,
+  CheckSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -24,6 +25,7 @@ import { StammdatenSection } from './sections/StammdatenSection';
 import { UmsatzplanungSection } from './sections/UmsatzplanungSection';
 import { BerichtspflichtenSection } from './sections/BerichtspflichtenSection';
 import { VerwendungsnachweisSection } from './sections/VerwendungsnachweisSection';
+import { AbschlussSection } from './sections/AbschlussSection';
 import type {
   ContractType,
   ContractFormData,
@@ -34,8 +36,10 @@ import type {
   RevenuePlanFormData,
   ReportDutyFormData,
   ProofOfUseFormData,
+  ChecklistItemFormData,
 } from '@/types';
 import { generateContractNumber, DEADLINE_TYPE_OPTIONS, REMINDER_PRESETS } from '@/lib/utils';
+import { generateDefaultChecklist } from '@/lib/checklistDefaults';
 
 interface ContractFormProps {
   contract?: ContractFull;
@@ -99,6 +103,16 @@ export const ContractForm = ({ contract, contractTypes, kpiTypes, mode }: Contra
     auditorRequired: p.auditorRequired,
   })) || [];
 
+  // Checkliste: Existierende Daten oder Standard-Items generieren
+  const existingChecklistItems: ChecklistItemFormData[] = contract?.checklistItems?.map((c) => ({
+    id: c.id,
+    category: c.category,
+    label: c.label,
+    assignee: c.assignee || '',
+    remark: c.remark || '',
+    isCompleted: c.isCompleted,
+  })) || generateDefaultChecklist();
+
   const [formData, setFormData] = useState<ContractFormData>({
     // Sektion 1: Stammdaten
     contractNumber: contract?.contractNumber || generateContractNumber(),
@@ -151,6 +165,9 @@ export const ContractForm = ({ contract, contractTypes, kpiTypes, mode }: Contra
     // Sektion 5 & 6
     deadlines: existingDeadlines,
     kpis: existingKpis,
+    
+    // Sektion 7: Abschluss-Checkliste
+    checklistItems: existingChecklistItems,
   });
 
   // === HANDLER FUNKTIONEN ===
@@ -344,6 +361,20 @@ export const ContractForm = ({ contract, contractTypes, kpiTypes, mode }: Contra
       ...prev,
       kpis: prev.kpis.map((kpi, i) =>
         i === index ? { ...kpi, [field]: value } : kpi
+      ),
+    }));
+  };
+
+  // Checklist Handler
+  const handleChecklistChange = (
+    index: number,
+    field: keyof ChecklistItemFormData,
+    value: string | boolean
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      checklistItems: prev.checklistItems.map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
       ),
     }));
   };
@@ -691,6 +722,30 @@ export const ContractForm = ({ contract, contractTypes, kpiTypes, mode }: Contra
               ))
             )}
           </div>
+        </Accordion>
+
+        {/* Sektion 7: Abschluss-Checkliste */}
+        <Accordion
+          title="7. Abschluss"
+          icon={<CheckSquare className="w-5 h-5" />}
+          badge={(() => {
+            const completed = formData.checklistItems.filter((item) => item.isCompleted).length;
+            const total = formData.checklistItems.length;
+            if (total === 0) return undefined;
+            return (
+              <Badge 
+                variant={completed === total ? 'success' : completed > 0 ? 'warning' : 'default'} 
+                size="sm"
+              >
+                {completed} / {total}
+              </Badge>
+            );
+          })()}
+        >
+          <AbschlussSection
+            formData={formData}
+            onChecklistChange={handleChecklistChange}
+          />
         </Accordion>
 
         {/* Notizen */}

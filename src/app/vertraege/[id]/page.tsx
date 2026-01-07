@@ -13,6 +13,7 @@ import {
   X,
   FileText,
   Euro,
+  CheckSquare,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/Button';
@@ -64,6 +65,9 @@ const getContract = async (id: string) => {
       },
       proofOfUseItems: {
         orderBy: { sequenceNumber: 'asc' },
+      },
+      checklistItems: {
+        orderBy: { sortOrder: 'asc' },
       },
       createdBy: {
         select: {
@@ -127,6 +131,12 @@ export default async function VertragDetailPage({ params }: PageProps) {
             </Button>
           </Link>
           <div className="flex items-center gap-3">
+            <Link href={`/vertraege/${contract.id}/abschluss`}>
+              <Button variant="secondary" className="gap-2">
+                <CheckSquare className="w-4 h-4" />
+                Abschluss
+              </Button>
+            </Link>
             <ExportButton 
               contractId={contract.id} 
               contractNumber={contract.contractNumber} 

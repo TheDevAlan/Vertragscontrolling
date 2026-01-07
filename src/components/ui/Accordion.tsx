@@ -71,3 +71,4 @@ export const AccordionGroup = ({ children, className }: AccordionGroupProps) => 
   return <div className={cn('space-y-4', className)}>{children}</div>;
 };
 
+

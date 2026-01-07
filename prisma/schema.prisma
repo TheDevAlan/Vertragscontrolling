@@ -103,6 +103,7 @@ model Contract {
   revenuePlan      RevenuePlanEntry[]
   reportDuties     ReportDuty[]
   proofOfUseItems  ProofOfUseItem[]
+  checklistItems   ChecklistItem[]
   
   // Metadaten
   createdById      String
@@ -270,4 +271,24 @@ model KpiHistory {
   note          String?     // Optionale Notiz zur Änderung
   
   @@map("kpi_history")
+}
+
+// Abschluss-Checkliste pro Vertrag (Sektion 7)
+model ChecklistItem {
+  id          String   @id @default(cuid())
+  contractId  String
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  
+  category    String   // MANAGEMENT, CONTROLLING, IT, QUALITAET
+  label       String   // Der Aufgabentext
+  assignee    String?  // Wer ist zuständig?
+  remark      String?  // Bemerkung
+  isCompleted Boolean  @default(false)
+  completedAt DateTime?
+  
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("checklist_items")
 }

@@ -56,6 +56,16 @@ const proofOfUseSchema = z.object({
   auditorRequired: z.boolean().default(false),
 });
 
+// Validierungs-Schema für Checkliste (Sektion 7: Abschluss)
+const checklistItemSchema = z.object({
+  id: z.string().optional(),
+  category: z.enum(['MANAGEMENT', 'CONTROLLING', 'IT', 'QUALITAET', 'NACHHALTIGKEIT']),
+  label: z.string(),
+  assignee: z.string().optional(),
+  remark: z.string().optional(),
+  isCompleted: z.boolean().optional().default(false),
+});
+
 // Validierungs-Schema für Updates
 const updateSchema = z.object({
   // Sektion 1: Stammdaten
@@ -108,6 +118,9 @@ const updateSchema = z.object({
   // Sektion 5 & 6
   deadlines: z.array(deadlineSchema).optional(),
   kpis: z.array(kpiSchema).optional(),
+  
+  // Sektion 7: Abschluss-Checkliste
+  checklistItems: z.array(checklistItemSchema).optional(),
 });
 
 // GET: Einzelnen Vertrag abrufen
@@ -140,6 +153,9 @@ export async function GET(
         },
         proofOfUseItems: {
           orderBy: { sequenceNumber: 'asc' },
+        },
+        checklistItems: {
+          orderBy: { sortOrder: 'asc' },
         },
         createdBy: {
           select: {
@@ -382,6 +398,27 @@ export async function PUT(
       }
     }
 
+    // Checkliste verarbeiten (falls übergeben)
+    if (body.checklistItems !== undefined) {
+      await prisma.checklistItem.deleteMany({
+        where: { contractId: params.id },
+      });
+
+      if (body.checklistItems.length > 0) {
+        await prisma.checklistItem.createMany({
+          data: body.checklistItems.map((item: z.infer<typeof checklistItemSchema>, index: number) => ({
+            contractId: params.id,
+            category: item.category,
+            label: item.label,
+            assignee: item.assignee || null,
+            remark: item.remark || null,
+            isCompleted: item.isCompleted || false,
+            sortOrder: index,
+          })),
+        });
+      }
+    }
+
     // Vertrag aktualisieren
     const contract = await prisma.contract.update({
       where: { id: params.id },
@@ -404,6 +441,9 @@ export async function PUT(
         },
         proofOfUseItems: {
           orderBy: { sequenceNumber: 'asc' },
+        },
+        checklistItems: {
+          orderBy: { sortOrder: 'asc' },
         },
       },
     });

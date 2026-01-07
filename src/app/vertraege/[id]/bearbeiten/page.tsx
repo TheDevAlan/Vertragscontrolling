@@ -31,6 +31,9 @@ const getContract = async (id: string) => {
       proofOfUseItems: {
         orderBy: { sequenceNumber: 'asc' },
       },
+      checklistItems: {
+        orderBy: { sortOrder: 'asc' },
+      },
     },
   });
   return contract;

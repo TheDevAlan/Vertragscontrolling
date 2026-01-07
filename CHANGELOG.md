@@ -1,5 +1,50 @@
 # Changelog
 
+## [0.6.0] - 2026-01-07
+
+### Neu: Abschluss-Checkliste (Sektion 7)
+- **Separate Abschluss-Seite**: Neue Seite `/vertraege/[id]/abschluss` für die Abschluss-Checkliste
+- **Abschluss-Button**: Neuer Button in der Vertragsdetailansicht links neben "Excel Export"
+- **5 Kategorien mit Checklisten**:
+  1. **Management** (7 Aufgaben): Windream-Verzeichnisse, Ziele/Kennziffern, Risikoanalyse, etc.
+  2. **Controlling / Finanzen / Personalverwaltung** (3 Aufgaben): FiBu, Bankkonten, Rexx-Anlage
+  3. **IT / ISMS / Datenschutz / ProDaBa** (7 Aufgaben): IT-Abstimmung, Zugriffsrechte, ISMS, Datenschutz
+  4. **Qualität & Öffentlichkeitsarbeit** (4 Aufgaben): Projektsteckbrief, Projekthandbuch, Führungskräftesitzung
+  5. **Nachhaltigkeit** (17 UN-Nachhaltigkeitsziele): Nur Checkboxen, keine zusätzlichen Felder
+- **Pro Zeile 3 Felder** (außer Nachhaltigkeit):
+  - Checkbox zum Abhaken
+  - "Wer?" Textfeld für Verantwortliche
+  - "Bemerkung" Textfeld für Notizen
+- **Fortschrittsanzeige**:
+  - Gesamtfortschritt mit Prozentbalken
+  - Kategorie-spezifischer Fortschritt
+  - Badge zeigt erledigte/gesamte Aufgaben
+- **Automatische Checklisten-Generierung**: Standard-Items werden bei neuen Verträgen und beim ersten Aufruf für bestehende Verträge automatisch angelegt
+- **Excel-Export für Checkliste**: Professioneller Export mit:
+  - Titel und Vertragsnummer
+  - Gesamtfortschritt
+  - Alle Kategorien mit Fortschritt
+  - Farbige Header (Corporate Design)
+  - Grüne Markierung für erledigte Items
+  - Export-Button in der Abschluss-Seite
+  - Bei Nachhaltigkeit nur Status + Aufgabe (ohne Wer/Bemerkung)
+
+### UI/UX-Verbesserungen
+- **Nachhaltigkeit-Sektion**: Spezielle Darstellung ohne "Wer?" und "Bemerkung" Felder
+- **Beschreibungstext**: "Welche der folgenden 17 UN-Nachhaltigkeitsziele erfüllt das Projekt?" wird angezeigt
+- **Speichern-Funktionalität**: Änderungen werden direkt in der Datenbank gespeichert
+- **Änderungsanzeige**: "Ungespeicherte Änderungen" Warnung
+
+### Technische Änderungen
+- **Neues Prisma-Modell**: `ChecklistItem` für Checklisten-Einträge
+- **API-Routen erweitert**: POST/PUT für Verträge unterstützt jetzt Checklisten-Items
+- **Neue API-Route**: `/api/contracts/[id]/abschluss-export` für Excel-Export der Checkliste
+- **TypeScript-Typen**: `ChecklistCategory`, `ChecklistItem`, `ChecklistItemFormData` hinzugefügt
+- **Default-Checklisten**: `checklistDefaults.ts` mit Standard-Items und Kategorien
+- **Neue Komponente**: `AbschlussSection` für die Checkliste im Vertragsformular
+
+---
+
 ## [0.5.0] - 2026-01-07
 
 ### Neu: Excel-Export-Funktion

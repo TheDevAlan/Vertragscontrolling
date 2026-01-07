@@ -125,6 +125,24 @@ export interface ProofOfUseItem {
   sortOrder: number;
 }
 
+// Checklisten-Kategorien (Sektion 7: Abschluss)
+export type ChecklistCategory = 'MANAGEMENT' | 'CONTROLLING' | 'IT' | 'QUALITAET' | 'NACHHALTIGKEIT';
+
+// Checklisten-Eintrag
+export interface ChecklistItem {
+  id: string;
+  contractId: string;
+  category: ChecklistCategory;
+  label: string;
+  assignee: string | null;
+  remark: string | null;
+  isCompleted: boolean;
+  completedAt: Date | null;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface ContractWithType extends Contract {
   type: ContractType;
 }
@@ -206,6 +224,7 @@ export interface ContractFull extends Contract {
   revenuePlan: RevenuePlanEntry[];
   reportDuties: ReportDuty[];
   proofOfUseItems: ProofOfUseItem[];
+  checklistItems: ChecklistItem[];
 }
 
 // Dashboard Statistiken
@@ -280,6 +299,15 @@ export interface ProofOfUseFormData {
   auditorRequired: boolean;
 }
 
+export interface ChecklistItemFormData {
+  id?: string;
+  category: ChecklistCategory;
+  label: string;
+  assignee?: string;
+  remark?: string;
+  isCompleted?: boolean;
+}
+
 export interface ContractFormData {
   // Sektion 1: Stammdaten
   contractNumber: string;
@@ -332,6 +360,9 @@ export interface ContractFormData {
   // Sektion 5 & 6: Kennzahlen und Fristen (unverändert)
   deadlines: DeadlineFormData[];
   kpis: KpiFormData[];
+  
+  // Sektion 7: Abschluss-Checkliste
+  checklistItems: ChecklistItemFormData[];
 }
 
 // Session erweiterter Typ
