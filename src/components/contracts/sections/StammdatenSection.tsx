@@ -178,12 +178,13 @@ export const StammdatenSection = ({
           value={formData.description || ''}
           onChange={onChange}
           rows={3}
-          className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+          className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
           placeholder="Optionale Beschreibung zum Projekt..."
         />
       </div>
     </div>
   );
 };
+
 
 

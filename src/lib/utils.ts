@@ -171,4 +171,3 @@ export const getDeadlineStatusText = (status: string): string => {
   };
   return statusMap[status] || status;
 };
-

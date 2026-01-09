@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.7.0] - 2026-01-09
+
+### Neu: Rollen- und Rechtesystem
+- **3 Rollen implementiert**: ADMIN, MANAGER, PROJEKTLEITUNG
+- **Zugriffssteuerung**:
+  - **ADMIN & MANAGER**: Sehen und bearbeiten alle Verträge
+  - **PROJEKTLEITUNG**: Sieht und bearbeitet nur eigene erstellte Verträge
+- **Session-basierte Filterung**: Alle API-Routen und Frontend-Seiten filtern basierend auf Benutzerrolle
+- **Zentrale Berechtigungslogik**: Neue `permissions.ts` mit wiederverwendbaren Hilfsfunktionen
+- **Demo-Benutzer**: 3 Demo-Accounts für alle Rollen (Passwort: demo123)
+  - Admin: admin@example.com
+  - Manager: manager@example.com
+  - Projektleitung: projektleitung@example.com
+
+### Erweiterte Demo-Daten
+- **Vordefinierte Kennzahlen-Typen**: 
+  - Bindung (%, grün)
+  - Bewilligung (%, blau)
+  - Zahlung (€, orange)
+- **Demo-Fristen** (6 Fristen mit verschiedener Dringlichkeit):
+  - Büroräume: Kündigung in 7 Tagen (KRITISCH)
+  - BMW: Verlängerung in 21 Tagen (BALD)
+  - IT-Equipment: Prüfung in 45 Tagen (NORMAL)
+- **Demo-Kennzahlen** (3 Kennzahlen mit verschiedenem Fortschritt):
+  - Büroräume: Bindung 75% (Frist in 14 Tagen)
+  - BMW: Bewilligung 50% (Frist in 30 Tagen)
+  - IT-Equipment: Zahlung 8.000€/15.000€ (Frist in 60 Tagen)
+
+### UI/UX-Verbesserungen
+- **Hellere Textfelder**: Alle Input-Felder haben jetzt `bg-white` für bessere Lesbarkeit
+  - Login-Felder (E-Mail, Passwort)
+  - Suchleiste in Vertragsliste
+  - Alle Textarea-Felder (Beschreibung, Notizen, etc.)
+  - Tabellen-Inputs (Umsatzplanung, Berichtspflichten, Verwendungsnachweis)
+  - Checkliste-Felder ("Wer?", "Bemerkung")
+- **Gesamtfortschritt-Anpassung**: Nachhaltigkeit-Kategorie (17 Items) wird vom Gesamtfortschritt ausgeschlossen, da es eine Auswahl ist, keine abzuarbeitende Checkliste
+
+### Technische Änderungen
+- **Prisma Schema**: Rollen-Definition aktualisiert (`USER` → `PROJEKTLEITUNG`)
+- **TypeScript-Typen**: `Role` Type erweitert (ADMIN, MANAGER, PROJEKTLEITUNG)
+- **API-Routen gesichert**: 
+  - GET `/api/contracts`: Filtert nach Rolle
+  - GET/PUT/DELETE `/api/contracts/[id]`: Zugriffsprüfung vor Operationen
+  - POST `/api/contracts`: Verwendet aktuellen Benutzer als Ersteller
+- **Frontend-Filterung**: Dashboard und Vertragsliste filtern serverseitig nach Rolle
+- **Seed-Datei erweitert**: Automatische Erstellung von Kennzahlen-Typen, Fristen und Kennzahlen
+
+---
+
 ## [0.6.0] - 2026-01-07
 
 ### Neu: Abschluss-Checkliste (Sektion 7)

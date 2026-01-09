@@ -167,7 +167,7 @@ export const UmsatzplanungSection = ({
                         type="text"
                         value={entry.label}
                         onChange={(e) => onRevenuePlanChange(index, 'label', e.target.value)}
-                        className="w-full px-2 py-1 rounded border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        className="w-full px-2 py-1 rounded border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                         placeholder="z.B. Eigenleistung"
                       />
                     </td>
@@ -183,7 +183,7 @@ export const UmsatzplanungSection = ({
                               parseFloat(e.target.value) || 0
                             )
                           }
-                          className="w-full px-2 py-1 rounded border border-slate-200 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary-500"
+                          className="w-full px-2 py-1 rounded border border-slate-200 bg-white text-slate-900 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary-500"
                           min={0}
                           step={0.01}
                         />
@@ -228,5 +228,6 @@ export const UmsatzplanungSection = ({
     </div>
   );
 };
+
 
 

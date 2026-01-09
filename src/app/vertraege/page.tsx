@@ -1,15 +1,23 @@
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
+import { getServerSession } from 'next-auth';
+import { redirect } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/Button';
 import { ContractTable } from '@/components/contracts/ContractTable';
 import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/lib/auth';
+import { canViewAllContracts } from '@/lib/permissions';
 import type { ContractWithType } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
-const getContracts = async (): Promise<ContractWithType[]> => {
+const getContracts = async (userId: string, userRole: string): Promise<ContractWithType[]> => {
+  // Filter: Projektleitung sieht nur eigene Verträge
+  const where = canViewAllContracts(userRole) ? {} : { createdById: userId };
+
   const contracts = await prisma.contract.findMany({
+    where,
     include: {
       type: true,
     },
@@ -24,13 +32,20 @@ const getContracts = async (): Promise<ContractWithType[]> => {
 };
 
 export default async function VertraegePage() {
-  const contracts = await getContracts();
+  // Session prüfen
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    redirect('/login');
+  }
+
+  const contracts = await getContracts(session.user.id, session.user.role);
+  const isProjectLead = !canViewAllContracts(session.user.role);
 
   return (
     <div className="min-h-screen bg-slate-50">
       <Header
         title="Verträge"
-        subtitle={`${contracts.length} Verträge insgesamt`}
+        subtitle={isProjectLead ? `${contracts.length} eigene Verträge` : `${contracts.length} Verträge insgesamt`}
       />
 
       <div className="p-6 space-y-6">

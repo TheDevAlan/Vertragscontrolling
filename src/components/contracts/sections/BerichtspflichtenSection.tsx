@@ -73,7 +73,7 @@ export const BerichtspflichtenSection = ({
                         type="text"
                         value={duty.reportType}
                         onChange={(e) => onReportDutyChange(index, 'reportType', e.target.value)}
-                        className="w-full px-2 py-1 rounded border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        className="w-full px-2 py-1 rounded border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                         placeholder="z.B. Zwischenbericht"
                       />
                     </td>
@@ -85,7 +85,7 @@ export const BerichtspflichtenSection = ({
                           onChange={(e) =>
                             onReportDutyChange(index, `year${year}` as keyof ReportDutyFormData, e.target.value)
                           }
-                          className="w-full px-2 py-1 rounded border border-slate-200 text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary-500"
+                          className="w-full px-2 py-1 rounded border border-slate-200 bg-white text-slate-900 text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary-500"
                           placeholder="X / Datum"
                         />
                       </td>
@@ -95,7 +95,7 @@ export const BerichtspflichtenSection = ({
                         type="text"
                         value={duty.remarks || ''}
                         onChange={(e) => onReportDutyChange(index, 'remarks', e.target.value)}
-                        className="w-full px-2 py-1 rounded border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        className="w-full px-2 py-1 rounded border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                         placeholder="Bemerkungen"
                       />
                     </td>
@@ -191,12 +191,13 @@ export const BerichtspflichtenSection = ({
           value={formData.additionalObligations || ''}
           onChange={onChange}
           rows={4}
-          className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+          className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
           placeholder="Weitere Berichtspflichten oder Anforderungen..."
         />
       </div>
     </div>
   );
 };
+
 
 

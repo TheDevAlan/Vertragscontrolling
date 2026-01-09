@@ -6,22 +6,50 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starte Seed...');
 
-  // Admin-Benutzer erstellen
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-  const hashedPassword = await bcrypt.hash(adminPassword, 12);
+  // Standard-Passwort für alle Demo-Benutzer
+  const defaultPassword = 'demo123';
+  const hashedPassword = await bcrypt.hash(defaultPassword, 12);
 
+  // === BENUTZER ERSTELLEN ===
+
+  // 1. Admin-Benutzer erstellen
   const admin = await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {},
+    where: { email: 'admin@example.com' },
+    update: { role: 'ADMIN' },
     create: {
-      email: adminEmail,
-      name: 'Administrator',
+      email: 'admin@example.com',
+      name: 'Admin User',
       password: hashedPassword,
       role: 'ADMIN',
     },
   });
-  console.log(`✅ Admin erstellt: ${admin.email}`);
+  console.log(`✅ Admin erstellt: ${admin.email} (Passwort: ${defaultPassword})`);
+
+  // 2. Manager-Benutzer erstellen
+  const manager = await prisma.user.upsert({
+    where: { email: 'manager@example.com' },
+    update: { role: 'MANAGER' },
+    create: {
+      email: 'manager@example.com',
+      name: 'Manager User',
+      password: hashedPassword,
+      role: 'MANAGER',
+    },
+  });
+  console.log(`✅ Manager erstellt: ${manager.email} (Passwort: ${defaultPassword})`);
+
+  // 3. Projektleitung-Benutzer erstellen
+  const projektleitung = await prisma.user.upsert({
+    where: { email: 'projektleitung@example.com' },
+    update: { role: 'PROJEKTLEITUNG' },
+    create: {
+      email: 'projektleitung@example.com',
+      name: 'Projekt Leiter',
+      password: hashedPassword,
+      role: 'PROJEKTLEITUNG',
+    },
+  });
+  console.log(`✅ Projektleitung erstellt: ${projektleitung.email} (Passwort: ${defaultPassword})`);
 
   // Vertragsarten erstellen
   const contractTypes = [
@@ -39,6 +67,24 @@ async function main() {
     console.log(`✅ Vertragsart erstellt: ${type.name}`);
   }
 
+  // === KENNZAHLEN-TYPEN ERSTELLEN ===
+  const kpiTypes = [
+    { name: 'Bindung', dataType: 'PERCENT', unit: '%', description: 'Bindungsquote der Mittel', color: '#22c55e' },      // Grün
+    { name: 'Bewilligung', dataType: 'PERCENT', unit: '%', description: 'Bewilligungsquote', color: '#3b82f6' },         // Blau
+    { name: 'Zahlung', dataType: 'CURRENCY', unit: '€', description: 'Erhaltene Zahlungen', color: '#f59e0b' },          // Orange
+  ];
+
+  const createdKpiTypes: Record<string, string> = {};
+  for (const kpiType of kpiTypes) {
+    const created = await prisma.kpiType.upsert({
+      where: { name: kpiType.name },
+      update: { color: kpiType.color, dataType: kpiType.dataType, unit: kpiType.unit },
+      create: kpiType,
+    });
+    createdKpiTypes[kpiType.name] = created.id;
+    console.log(`✅ Kennzahl-Typ erstellt: ${kpiType.name}`);
+  }
+
   // Demo-Verträge erstellen
   const mietvertrag = await prisma.contractType.findUnique({ where: { name: 'Mietvertrag' } });
   const leasing = await prisma.contractType.findUnique({ where: { name: 'Leasing' } });
@@ -46,6 +92,7 @@ async function main() {
 
   if (mietvertrag && leasing && instrumenten) {
     const demoContracts = [
+      // Verträge vom Admin
       {
         contractNumber: 'MV-2024-001',
         title: 'Büroräume Hauptgebäude',
@@ -78,6 +125,7 @@ async function main() {
         reminderDays: 60,
         createdById: admin.id,
       },
+      // Vertrag vom Manager
       {
         contractNumber: 'IV-2024-001',
         title: 'Wartungsvertrag Laborgeräte',
@@ -91,8 +139,9 @@ async function main() {
         status: 'ACTIVE',
         noticePeriodDays: 90,
         reminderDays: 30,
-        createdById: admin.id,
+        createdById: manager.id,
       },
+      // Verträge von der Projektleitung (nur diese sieht die Projektleitung)
       {
         contractNumber: 'MV-2023-002',
         title: 'Lagerhalle Nord',
@@ -106,8 +155,8 @@ async function main() {
         status: 'ACTIVE',
         noticePeriodDays: 180,
         reminderDays: 90,
-        createdById: admin.id,
-        description: 'Lagerfläche 500m²',
+        createdById: projektleitung.id,
+        description: 'Lagerfläche 500m² - Erstellt von Projektleitung',
       },
       {
         contractNumber: 'LS-2023-001',
@@ -121,7 +170,8 @@ async function main() {
         status: 'ACTIVE',
         noticePeriodDays: 30,
         reminderDays: 30,
-        createdById: admin.id,
+        createdById: projektleitung.id,
+        description: 'Erstellt von Projektleitung',
       },
     ];
 
@@ -135,9 +185,115 @@ async function main() {
         console.log(`✅ Vertrag erstellt: ${contract.contractNumber}`);
       }
     }
+
+    // === FRISTEN UND KENNZAHLEN HINZUFÜGEN ===
+    const today = new Date();
+    
+    // Verträge abrufen für Fristen/Kennzahlen
+    const bueroVertrag = await prisma.contract.findUnique({ where: { contractNumber: 'MV-2024-001' } });
+    const bmwVertrag = await prisma.contract.findUnique({ where: { contractNumber: 'LS-2024-001' } });
+    const itVertrag = await prisma.contract.findUnique({ where: { contractNumber: 'LS-2023-001' } });
+
+    if (bueroVertrag && bmwVertrag && itVertrag) {
+      // Fristen erstellen (mit verschiedener Dringlichkeit)
+      const deadlines = [
+        // Frist 1: KRITISCH - in 7 Tagen (Büroräume)
+        {
+          contractId: bueroVertrag.id,
+          type: 'KUENDIGUNG',
+          customLabel: null,
+          dueDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000),
+          reminderDays: 14,
+          notifyEmail: 'admin@example.com',
+          isCompleted: false,
+        },
+        // Frist 2: BALD - in 21 Tagen (BMW)
+        {
+          contractId: bmwVertrag.id,
+          type: 'VERLAENGERUNG',
+          customLabel: null,
+          dueDate: new Date(today.getTime() + 21 * 24 * 60 * 60 * 1000),
+          reminderDays: 30,
+          notifyEmail: 'admin@example.com',
+          isCompleted: false,
+        },
+        // Frist 3: NORMAL - in 45 Tagen (IT-Equipment)
+        {
+          contractId: itVertrag.id,
+          type: 'PRUEFUNG',
+          customLabel: 'Jährliche Inventur',
+          dueDate: new Date(today.getTime() + 45 * 24 * 60 * 60 * 1000),
+          reminderDays: 14,
+          notifyEmail: 'projektleitung@example.com',
+          isCompleted: false,
+        },
+      ];
+
+      // Alte Fristen für diese Verträge löschen
+      await prisma.deadline.deleteMany({
+        where: { contractId: { in: [bueroVertrag.id, bmwVertrag.id, itVertrag.id] } },
+      });
+
+      for (const deadline of deadlines) {
+        await prisma.deadline.create({ data: deadline });
+      }
+      console.log(`✅ 3 Fristen erstellt (verschiedene Dringlichkeiten)`);
+
+      // Kennzahlen erstellen (mit verschiedenem Fortschritt)
+      const kpis = [
+        // KPI 1: Bindung für Büroräume - 75% erreicht, Frist in 14 Tagen (KRITISCH)
+        {
+          contractId: bueroVertrag.id,
+          kpiTypeId: createdKpiTypes['Bindung'],
+          targetValue: 100,
+          currentValue: 75,
+          dueDate: new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000),
+        },
+        // KPI 2: Bewilligung für BMW - 50% erreicht, Frist in 30 Tagen (NORMAL)
+        {
+          contractId: bmwVertrag.id,
+          kpiTypeId: createdKpiTypes['Bewilligung'],
+          targetValue: 100,
+          currentValue: 50,
+          dueDate: new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000),
+        },
+        // KPI 3: Zahlung für IT-Equipment - 8000 von 15000€, Frist in 60 Tagen
+        {
+          contractId: itVertrag.id,
+          kpiTypeId: createdKpiTypes['Zahlung'],
+          targetValue: 15000,
+          currentValue: 8000,
+          dueDate: new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000),
+        },
+      ];
+
+      // Alte KPIs für diese Verträge löschen
+      await prisma.contractKpi.deleteMany({
+        where: { contractId: { in: [bueroVertrag.id, bmwVertrag.id, itVertrag.id] } },
+      });
+
+      for (const kpi of kpis) {
+        await prisma.contractKpi.create({ data: kpi });
+      }
+      console.log(`✅ 3 Kennzahlen erstellt (verschiedener Fortschritt)`);
+    }
   }
 
+  console.log('');
   console.log('🎉 Seed abgeschlossen!');
+  console.log('');
+  console.log('📋 Demo-Zugangsdaten:');
+  console.log('┌─────────────────────────────────────────────────────────────┐');
+  console.log('│ Rolle          │ E-Mail                    │ Passwort      │');
+  console.log('├─────────────────────────────────────────────────────────────┤');
+  console.log('│ ADMIN          │ admin@example.com         │ demo123       │');
+  console.log('│ MANAGER        │ manager@example.com       │ demo123       │');
+  console.log('│ PROJEKTLEITUNG │ projektleitung@example.com│ demo123       │');
+  console.log('└─────────────────────────────────────────────────────────────┘');
+  console.log('');
+  console.log('📊 Berechtigungen:');
+  console.log('  • ADMIN + MANAGER: Sehen alle Verträge');
+  console.log('  • PROJEKTLEITUNG: Sieht nur eigene Verträge (2 Demo-Verträge)');
 }
 
 main()

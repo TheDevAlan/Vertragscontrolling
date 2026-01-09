@@ -28,10 +28,11 @@ export const AbschlussSection = ({
     return { completed, total: items.length };
   };
 
-  // Gesamtfortschritt
+  // Gesamtfortschritt (ohne Nachhaltigkeit-Kategorie)
+  const relevantItems = formData.checklistItems.filter((item) => item.category !== 'NACHHALTIGKEIT');
   const totalProgress = {
-    completed: formData.checklistItems.filter((item) => item.isCompleted).length,
-    total: formData.checklistItems.length,
+    completed: relevantItems.filter((item) => item.isCompleted).length,
+    total: relevantItems.length,
   };
 
   return (
@@ -142,7 +143,7 @@ export const AbschlussSection = ({
                               onChange={(e) =>
                                 onChecklistChange(item.originalIndex, 'assignee', e.target.value)
                               }
-                              className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                              className="w-full px-2 py-1.5 rounded border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                               placeholder="Wer?"
                             />
                           </td>
@@ -153,7 +154,7 @@ export const AbschlussSection = ({
                               onChange={(e) =>
                                 onChecklistChange(item.originalIndex, 'remark', e.target.value)
                               }
-                              className="w-full px-2 py-1.5 rounded border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                              className="w-full px-2 py-1.5 rounded border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                               placeholder="Bemerkung"
                             />
                           </td>

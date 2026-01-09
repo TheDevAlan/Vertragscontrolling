@@ -755,7 +755,7 @@ export const ContractForm = ({ contract, contractTypes, kpiTypes, mode }: Contra
             value={formData.notes || ''}
             onChange={handleChange}
             rows={4}
-            className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+            className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
             placeholder="Interne Notizen zum Vertrag..."
           />
         </Accordion>

@@ -84,7 +84,7 @@ export default function LoginPage() {
                   onChange={handleChange}
                   placeholder="E-Mail-Adresse"
                   required
-                  className="w-full pl-11 pr-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                  className="w-full pl-11 pr-4 py-3 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                 />
               </div>
 
@@ -97,7 +97,7 @@ export default function LoginPage() {
                   onChange={handleChange}
                   placeholder="Passwort"
                   required
-                  className="w-full pl-11 pr-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                  className="w-full pl-11 pr-4 py-3 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                 />
               </div>
             </div>
@@ -116,13 +116,23 @@ export default function LoginPage() {
 
           {/* Demo-Hinweis */}
           <div className="mt-6 pt-6 border-t border-slate-100">
-            <p className="text-sm text-slate-500 text-center">
-              <strong>Demo-Zugangsdaten:</strong>
-              <br />
-              E-Mail: admin@example.com
-              <br />
-              Passwort: admin123
+            <p className="text-sm text-slate-500 text-center mb-3">
+              <strong>Demo-Zugangsdaten:</strong> (Passwort: demo123)
             </p>
+            <div className="space-y-1 text-xs text-slate-500">
+              <div className="flex justify-between px-2">
+                <span className="font-medium">Admin:</span>
+                <span>admin@example.com</span>
+              </div>
+              <div className="flex justify-between px-2">
+                <span className="font-medium">Manager:</span>
+                <span>manager@example.com</span>
+              </div>
+              <div className="flex justify-between px-2">
+                <span className="font-medium">Projektleitung:</span>
+                <span>projektleitung@example.com</span>
+              </div>
+            </div>
           </div>
         </div>
 

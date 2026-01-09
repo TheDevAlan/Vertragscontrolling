@@ -1,6 +1,6 @@
 // TypeScript Typen für Vertragscontrolling
 
-export type Role = 'ADMIN' | 'USER' | 'VIEWER';
+export type Role = 'ADMIN' | 'MANAGER' | 'PROJEKTLEITUNG';
 
 export type ContractStatus = 'ACTIVE' | 'TERMINATED' | 'EXPIRED' | 'DRAFT';
 

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/lib/auth';
+import { canViewContract, canEditContract, canDeleteContract } from '@/lib/permissions';
 import { z } from 'zod';
 
 // Validierungs-Schema für Fristen
@@ -129,6 +132,15 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Session prüfen
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: 'Nicht authentifiziert' },
+        { status: 401 }
+      );
+    }
+
     const contract = await prisma.contract.findUnique({
       where: { id: params.id },
       include: {
@@ -173,6 +185,14 @@ export async function GET(
       );
     }
 
+    // Berechtigungsprüfung: Darf der Benutzer diesen Vertrag sehen?
+    if (!canViewContract(session.user.role, session.user.id, contract.createdById)) {
+      return NextResponse.json(
+        { success: false, error: 'Keine Berechtigung für diesen Vertrag' },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json({ success: true, data: contract });
   } catch (error) {
     console.error('GET contract error:', error);
@@ -189,6 +209,15 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Session prüfen
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: 'Nicht authentifiziert' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
 
     // Prüfen, ob Vertrag existiert
@@ -200,6 +229,14 @@ export async function PUT(
       return NextResponse.json(
         { success: false, error: 'Vertrag nicht gefunden' },
         { status: 404 }
+      );
+    }
+
+    // Berechtigungsprüfung: Darf der Benutzer diesen Vertrag bearbeiten?
+    if (!canEditContract(session.user.role, session.user.id, existing.createdById)) {
+      return NextResponse.json(
+        { success: false, error: 'Keine Berechtigung zum Bearbeiten' },
+        { status: 403 }
       );
     }
 
@@ -464,6 +501,15 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Session prüfen
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: 'Nicht authentifiziert' },
+        { status: 401 }
+      );
+    }
+
     // Prüfen, ob Vertrag existiert
     const existing = await prisma.contract.findUnique({
       where: { id: params.id },
@@ -473,6 +519,14 @@ export async function DELETE(
       return NextResponse.json(
         { success: false, error: 'Vertrag nicht gefunden' },
         { status: 404 }
+      );
+    }
+
+    // Berechtigungsprüfung: Darf der Benutzer diesen Vertrag löschen?
+    if (!canDeleteContract(session.user.role, session.user.id, existing.createdById)) {
+      return NextResponse.json(
+        { success: false, error: 'Keine Berechtigung zum Löschen' },
+        { status: 403 }
       );
     }
 

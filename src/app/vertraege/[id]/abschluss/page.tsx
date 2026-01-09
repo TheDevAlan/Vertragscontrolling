@@ -134,10 +134,12 @@ export default function AbschlussPage({ params }: { params: { id: string } }) {
     }
   };
 
-  // Fortschritt berechnen
+  // Fortschritt berechnen (ohne Nachhaltigkeit-Kategorie)
   const getProgress = () => {
-    const completed = checklistItems.filter((item) => item.isCompleted).length;
-    const total = checklistItems.length;
+    // Nachhaltigkeit-Items aus dem Gesamtfortschritt ausschließen
+    const relevantItems = checklistItems.filter((item) => item.category !== 'NACHHALTIGKEIT');
+    const completed = relevantItems.filter((item) => item.isCompleted).length;
+    const total = relevantItems.length;
     return { completed, total, percent: total > 0 ? (completed / total) * 100 : 0 };
   };
 
@@ -378,7 +380,7 @@ export default function AbschlussPage({ params }: { params: { id: string } }) {
                                         e.target.value
                                       )
                                     }
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                                     placeholder="Wer?"
                                   />
                                 </td>
@@ -393,7 +395,7 @@ export default function AbschlussPage({ params }: { params: { id: string } }) {
                                         e.target.value
                                       )
                                     }
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                                     placeholder="Bemerkung"
                                   />
                                 </td>

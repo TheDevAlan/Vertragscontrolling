@@ -1,25 +1,34 @@
 import { FileText, TrendingUp, AlertCircle, Euro, BarChart3 } from 'lucide-react';
+import { getServerSession } from 'next-auth';
+import { redirect } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { UpcomingDeadlines } from '@/components/dashboard/UpcomingDeadlines';
 import { UpcomingKpis } from '@/components/dashboard/UpcomingKpis';
 import { ContractTypeChart } from '@/components/dashboard/ContractTypeChart';
 import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/lib/auth';
+import { canViewAllContracts } from '@/lib/permissions';
 import { formatCurrency } from '@/lib/utils';
 import type { ContractTypeDistribution } from '@/types';
 
 // Diese Seite wird bei jedem Request neu gerendert
 export const dynamic = 'force-dynamic';
 
-const getDashboardData = async () => {
+const getDashboardData = async (userId: string, userRole: string) => {
+  // Filter: Projektleitung sieht nur eigene Verträge
+  const contractFilter = canViewAllContracts(userRole) 
+    ? {} 
+    : { createdById: userId };
+
   // Statistiken abrufen
   const [totalContracts, activeContracts, contractTypes] = await Promise.all([
-    prisma.contract.count(),
-    prisma.contract.count({ where: { status: 'ACTIVE' } }),
+    prisma.contract.count({ where: contractFilter }),
+    prisma.contract.count({ where: { ...contractFilter, status: 'ACTIVE' } }),
     prisma.contractType.findMany({
       include: {
         _count: {
-          select: { contracts: true },
+          select: { contracts: canViewAllContracts(userRole) ? true : { where: { createdById: userId } } },
         },
       },
     }),
@@ -27,7 +36,7 @@ const getDashboardData = async () => {
 
   // Gesamtwert aller aktiven Verträge
   const totalValue = await prisma.contract.aggregate({
-    where: { status: 'ACTIVE' },
+    where: { ...contractFilter, status: 'ACTIVE' },
     _sum: { value: true },
   });
 
@@ -44,6 +53,7 @@ const getDashboardData = async () => {
         lte: in90Days,
       },
       contract: {
+        ...contractFilter,
         status: 'ACTIVE',
       },
     },
@@ -71,6 +81,7 @@ const getDashboardData = async () => {
   const upcomingKpis = await prisma.contractKpi.findMany({
     where: {
       contract: {
+        ...contractFilter,
         status: 'ACTIVE',
       },
       OR: [
@@ -126,7 +137,16 @@ const getDashboardData = async () => {
 };
 
 export default async function DashboardPage() {
-  const { stats, upcomingDeadlines, upcomingKpis, typeDistribution } = await getDashboardData();
+  // Session prüfen
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    redirect('/login');
+  }
+
+  const { stats, upcomingDeadlines, upcomingKpis, typeDistribution } = await getDashboardData(
+    session.user.id,
+    session.user.role
+  );
 
   return (
     <div className="min-h-screen bg-slate-50">

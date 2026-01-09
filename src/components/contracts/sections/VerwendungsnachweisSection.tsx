@@ -125,7 +125,7 @@ export const VerwendungsnachweisSection = ({
                           onChange={(e) =>
                             onProofOfUseChange(index, 'sequenceNumber', parseInt(e.target.value) || 0)
                           }
-                          className="w-full px-2 py-1 rounded border border-slate-200 text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary-500"
+                          className="w-full px-2 py-1 rounded border border-slate-200 bg-white text-slate-900 text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary-500"
                           min={1}
                         />
                       </td>
@@ -141,7 +141,7 @@ export const VerwendungsnachweisSection = ({
                           type="text"
                           value={item.proofType}
                           onChange={(e) => onProofOfUseChange(index, 'proofType', e.target.value)}
-                          className="w-full px-2 py-1 rounded border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                          className="w-full px-2 py-1 rounded border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                           placeholder="z.B. Zwischenverwendungsnachweis"
                         />
                       </td>
@@ -185,12 +185,13 @@ export const VerwendungsnachweisSection = ({
           value={formData.proofOfUseRemarks || ''}
           onChange={onChange}
           rows={4}
-          className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+          className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
           placeholder="Besondere Anforderungen an den Verwendungsnachweis..."
         />
       </div>
     </div>
   );
 };
+
 
 

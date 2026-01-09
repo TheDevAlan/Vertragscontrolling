@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/lib/auth';
+import { canViewAllContracts } from '@/lib/permissions';
 import { z } from 'zod';
 
 // Validierungs-Schema für Fristen
@@ -124,9 +127,18 @@ const contractSchema = z.object({
   checklistItems: z.array(checklistItemSchema).optional().default([]),
 });
 
-// GET: Alle Verträge abrufen
+// GET: Alle Verträge abrufen (gefiltert nach Rolle)
 export async function GET(request: NextRequest) {
   try {
+    // Session prüfen
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: 'Nicht authentifiziert' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const typeId = searchParams.get('typeId');
@@ -134,6 +146,11 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {};
     if (status) where.status = status;
     if (typeId) where.typeId = typeId;
+
+    // Rollenbasierte Filterung: Projektleitung sieht nur eigene Verträge
+    if (!canViewAllContracts(session.user.role)) {
+      where.createdById = session.user.id;
+    }
 
     const contracts = await prisma.contract.findMany({
       where,
@@ -179,6 +196,15 @@ export async function GET(request: NextRequest) {
 // POST: Neuen Vertrag erstellen
 export async function POST(request: NextRequest) {
   try {
+    // Session prüfen
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: 'Nicht authentifiziert' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
 
     // Validierung
@@ -208,17 +234,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Ersteller abrufen (für Demo: ersten Admin verwenden)
-    const admin = await prisma.user.findFirst({
-      where: { role: 'ADMIN' },
-    });
-
-    if (!admin) {
-      return NextResponse.json(
-        { success: false, error: 'Kein Admin-Benutzer gefunden' },
-        { status: 500 }
-      );
-    }
+    // Ersteller ist der aktuelle Benutzer
+    const creatorId = session.user.id;
 
     // Automatische Rückzahlungsfrist-Deadline erstellen
     const deadlines = [...data.deadlines];
@@ -280,7 +297,7 @@ export async function POST(request: NextRequest) {
         // Sonstige
         notes: data.notes || null,
         reminderDays: data.reminderDays,
-        createdById: admin.id,
+        createdById: creatorId,
         
         // Relationen
         deadlines: {
