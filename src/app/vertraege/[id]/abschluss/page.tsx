@@ -252,7 +252,7 @@ export default function AbschlussPage({ params }: { params: { id: string } }) {
               <div className="flex items-center gap-3">
                 <Badge 
                   variant={progress.completed === progress.total ? 'success' : progress.completed > 0 ? 'warning' : 'default'}
-                  size="lg"
+                  size="md"
                 >
                   {progress.completed} / {progress.total} erledigt
                 </Badge>
