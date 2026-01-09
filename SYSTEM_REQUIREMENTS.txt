@@ -1,0 +1,16 @@
+# System-Anforderungen für lokale Installation
+
+Diese Datei dokumentiert die Systemanforderungen für die lokale Entwicklung.
+Für Railway/Cloud-Deployment werden diese automatisch erfüllt.
+
+## Laufzeit
+- Node.js >= 18.18.0
+- npm >= 9.0.0
+
+## Datenbank
+- Docker >= 20.10.0 (für lokale PostgreSQL-Installation)
+- PostgreSQL >= 16.0
+
+## Hinweis
+Alle npm-Dependencies sind in package.json definiert.
+Diese Datei dient nur zur Dokumentation der Systemanforderungen.
