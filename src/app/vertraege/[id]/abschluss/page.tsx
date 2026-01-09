@@ -161,7 +161,7 @@ export default function AbschlussPage({ params }: { params: { id: string } }) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <Header />
+        <Header title="Laden..." />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
@@ -174,7 +174,7 @@ export default function AbschlussPage({ params }: { params: { id: string } }) {
   if (!contract) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <Header />
+        <Header title="Vertrag nicht gefunden" />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <p className="text-center text-slate-500">Vertrag nicht gefunden</p>
         </main>
