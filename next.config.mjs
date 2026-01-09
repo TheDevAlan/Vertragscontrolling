@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Für lokale Server-Installation
+  // Standalone Output für optimierte Production Builds
   output: 'standalone',
 };
 
