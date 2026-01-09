@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.8.1] - 2026-01-09
+
+### Sicherheits-Updates
+- **Next.js Update**: Aktualisierung von 14.2.3 auf 14.2.35 zur Behebung kritischer Sicherheitslücken (CVE-2025-55184, CVE-2025-67779)
+- **eslint-config-next Update**: Aktualisierung auf 14.2.35 für Kompatibilität
+
+### UI/UX-Verbesserungen
+- **Abschluss als Tab**: Der "Abschluss"-Button wurde in einen Tab umgewandelt und ist jetzt konsistent mit "Übersicht" und "Änderungsverlauf" gestylt
+- **Tab-Navigation**: Einheitliche Tab-Navigation zwischen Vertragsdetail-Seite und Abschluss-Seite
+- **Verbesserte Tab-Komponente**: Tabs unterstützen jetzt externe Navigation und Query-Parameter
+
+### Bugfixes
+- **Invalid Date Fix**: Korrektur der Datumsformatierung beim Erstellen neuer Fristen
+  - Verbesserte Datums-Parsing-Logik unterstützt verschiedene Formate (ISO, deutsches Format)
+  - Bessere Fehlerbehandlung bei ungültigen Datumsangaben
+  - Zeitzone-Handling verbessert
+
+### Technische Änderungen
+- **ContractDetailTabs-Komponente**: Neue wiederverwendbare Tab-Komponente für Vertragsdetails
+- **Verbesserte Datumsformatierung**: `formatDateSafe` Funktion für robustes Datums-Parsing in Historie-Tracking
+- **Tab-State-Management**: Client-seitiges State-Management für Tab-Navigation mit URL-Parameter-Support
+
+---
+
 ## [0.8.0] - 2026-01-09
 
 ### Neu: PostgreSQL-Migration

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { canViewContract, canEditContract, canDeleteContract } from '@/lib/permissions';
+import { createHistoryEntries, createRelationHistoryEntries } from '@/lib/contractHistory';
 import { z } from 'zod';
 
 // Validierungs-Schema für Fristen
@@ -255,6 +256,39 @@ export async function PUT(
 
     const data = validationResult.data;
 
+    // Alten Vertrag für Historie-Vergleich vollständig laden
+    const oldContract = await prisma.contract.findUnique({
+      where: { id: params.id },
+      include: {
+        type: true,
+        deadlines: true,
+        kpis: {
+          include: {
+            kpiType: true,
+          },
+        },
+        revenuePlan: true,
+        reportDuties: true,
+        proofOfUseItems: true,
+        checklistItems: true,
+      },
+    });
+
+    if (!oldContract) {
+      return NextResponse.json(
+        { success: false, error: 'Vertrag nicht gefunden' },
+        { status: 404 }
+      );
+    }
+
+    // ContractTypes für typeId -> Name Konvertierung laden
+    const contractTypes = await prisma.contractType.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
     // Update-Daten vorbereiten
     const updateData: Record<string, unknown> = {};
 
@@ -456,33 +490,138 @@ export async function PUT(
       }
     }
 
-    // Vertrag aktualisieren
-    const contract = await prisma.contract.update({
-      where: { id: params.id },
-      data: updateData,
-      include: {
-        type: true,
-        deadlines: {
-          orderBy: { dueDate: 'asc' },
-        },
-        kpis: {
-          include: {
-            kpiType: true,
+    // Vertrag aktualisieren mit Historie-Tracking in Transaktion
+    const contract = await prisma.$transaction(async (tx) => {
+      // Alte Relationen für Vergleich speichern
+      const oldDeadlines = oldContract?.deadlines || [];
+      const oldKpis = oldContract?.kpis || [];
+      const oldRevenuePlan = oldContract?.revenuePlan || [];
+      const oldReportDuties = oldContract?.reportDuties || [];
+      const oldProofOfUseItems = oldContract?.proofOfUseItems || [];
+      const oldChecklistItems = oldContract?.checklistItems || [];
+
+      // Vertrag aktualisieren
+      const updatedContract = await tx.contract.update({
+        where: { id: params.id },
+        data: updateData,
+        include: {
+          type: true,
+          deadlines: {
+            orderBy: { dueDate: 'asc' },
+          },
+          kpis: {
+            include: {
+              kpiType: true,
+            },
+          },
+          revenuePlan: {
+            orderBy: { sortOrder: 'asc' },
+          },
+          reportDuties: {
+            orderBy: { sortOrder: 'asc' },
+          },
+          proofOfUseItems: {
+            orderBy: { sequenceNumber: 'asc' },
+          },
+          checklistItems: {
+            orderBy: { sortOrder: 'asc' },
           },
         },
-        revenuePlan: {
-          orderBy: { sortOrder: 'asc' },
-        },
-        reportDuties: {
-          orderBy: { sortOrder: 'asc' },
-        },
-        proofOfUseItems: {
-          orderBy: { sequenceNumber: 'asc' },
-        },
-        checklistItems: {
-          orderBy: { sortOrder: 'asc' },
-        },
-      },
+      });
+
+      // Historie-Einträge erstellen
+      if (session.user.id) {
+        // Direkte Contract-Felder tracken
+        if (Object.keys(updateData).length > 0 && oldContract) {
+          const oldData: Record<string, unknown> = {
+            ...oldContract,
+            typeId: oldContract.typeId,
+          };
+
+          const newData: Record<string, unknown> = {
+            ...oldContract,
+            ...updateData,
+          };
+
+          await createHistoryEntries(
+            tx,
+            params.id,
+            session.user.id,
+            oldData,
+            newData,
+            contractTypes
+          );
+        }
+
+        // Relationen tracken
+        if (body.deadlines !== undefined) {
+          await createRelationHistoryEntries(
+            tx,
+            params.id,
+            session.user.id,
+            'deadlines',
+            oldDeadlines,
+            updatedContract.deadlines
+          );
+        }
+
+        if (body.kpis !== undefined) {
+          await createRelationHistoryEntries(
+            tx,
+            params.id,
+            session.user.id,
+            'kpis',
+            oldKpis,
+            updatedContract.kpis
+          );
+        }
+
+        if (body.revenuePlan !== undefined) {
+          await createRelationHistoryEntries(
+            tx,
+            params.id,
+            session.user.id,
+            'revenuePlan',
+            oldRevenuePlan,
+            updatedContract.revenuePlan
+          );
+        }
+
+        if (body.reportDuties !== undefined) {
+          await createRelationHistoryEntries(
+            tx,
+            params.id,
+            session.user.id,
+            'reportDuties',
+            oldReportDuties,
+            updatedContract.reportDuties
+          );
+        }
+
+        if (body.proofOfUseItems !== undefined) {
+          await createRelationHistoryEntries(
+            tx,
+            params.id,
+            session.user.id,
+            'proofOfUseItems',
+            oldProofOfUseItems,
+            updatedContract.proofOfUseItems
+          );
+        }
+
+        if (body.checklistItems !== undefined) {
+          await createRelationHistoryEntries(
+            tx,
+            params.id,
+            session.user.id,
+            'checklistItems',
+            oldChecklistItems,
+            updatedContract.checklistItems
+          );
+        }
+      }
+
+      return updatedContract;
     });
 
     return NextResponse.json({ success: true, data: contract });

@@ -33,6 +33,7 @@ import {
 } from '@/lib/utils';
 import { KpiCard } from '@/components/contracts/KpiCard';
 import { ExportButton } from '@/components/contracts/ExportButton';
+import { ContractDetailTabs } from '@/components/contracts/ContractDetailTabs';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,7 +82,12 @@ const getContract = async (id: string) => {
   return contract;
 };
 
-export default async function VertragDetailPage({ params }: PageProps) {
+interface PageProps {
+  params: { id: string };
+  searchParams?: { tab?: string };
+}
+
+export default async function VertragDetailPage({ params, searchParams }: PageProps) {
   const contract = await getContract(params.id);
 
   if (!contract) {
@@ -131,12 +137,6 @@ export default async function VertragDetailPage({ params }: PageProps) {
             </Button>
           </Link>
           <div className="flex items-center gap-3">
-            <Link href={`/vertraege/${contract.id}/abschluss`}>
-              <Button variant="secondary" className="gap-2">
-                <CheckSquare className="w-4 h-4" />
-                Abschluss
-              </Button>
-            </Link>
             <ExportButton 
               contractId={contract.id} 
               contractNumber={contract.contractNumber} 
@@ -224,7 +224,11 @@ export default async function VertragDetailPage({ params }: PageProps) {
           </CardContent>
         </Card>
 
-        <AccordionGroup>
+        <ContractDetailTabs
+          contractId={contract.id}
+          initialTab={searchParams?.tab === 'history' ? 'history' : 'overview'}
+          overviewContent={
+            <AccordionGroup>
           {/* Sektion 1: Stammdaten */}
           <Accordion
             title="1. Stammdaten"
@@ -637,6 +641,8 @@ export default async function VertragDetailPage({ params }: PageProps) {
             </div>
           </Accordion>
         </AccordionGroup>
+          }
+        />
       </div>
     </div>
   );

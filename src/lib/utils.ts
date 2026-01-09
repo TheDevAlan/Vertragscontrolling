@@ -116,9 +116,7 @@ export const getDeadlineTypeText = (type: string): string => {
     SONSTIGES: 'Sonstiges',
   };
   return typeMap[type] || type;
-};
-
-/**
+};/**
  * Berechnet den Status einer Frist
  * - ERLEDIGT: isCompleted = true
  * - VERPASST: dueDate in der Vergangenheit und nicht erledigt

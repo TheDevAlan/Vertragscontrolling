@@ -14,6 +14,7 @@ import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
+import { ContractDetailTabs } from '@/components/contracts/ContractDetailTabs';
 import { CHECKLIST_CATEGORIES, generateDefaultChecklist } from '@/lib/checklistDefaults';
 import type { ChecklistCategory, ChecklistItemFormData } from '@/types';
 
@@ -185,8 +186,13 @@ export default function AbschlussPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header />
+      <Header title={contract.title} subtitle={`${contract.contractNumber}`} />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Tabs Navigation */}
+        <div className="mb-6">
+          <ContractDetailTabs contractId={params.id} showContent={false} />
+        </div>
+
         {/* Header */}
         <div className="mb-8">
           <Link

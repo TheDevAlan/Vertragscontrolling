@@ -21,6 +21,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   
   contracts     Contract[] @relation("CreatedBy")
+  contractHistory ContractHistory[] @relation("ContractHistory")
   
   @@map("users")
 }
@@ -104,6 +105,7 @@ model Contract {
   reportDuties     ReportDuty[]
   proofOfUseItems  ProofOfUseItem[]
   checklistItems   ChecklistItem[]
+  history          ContractHistory[]
   
   // Metadaten
   createdById      String
@@ -291,4 +293,29 @@ model ChecklistItem {
   updatedAt   DateTime @updatedAt
   
   @@map("checklist_items")
+}
+
+// Änderungsverlauf für Verträge
+model ContractHistory {
+  id          String   @id @default(cuid())
+  contractId  String
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  
+  // Wer hat die Änderung vorgenommen
+  changedById String
+  changedBy   User     @relation("ContractHistory", fields: [changedById], references: [id])
+  
+  // Was wurde geändert
+  fieldName   String   // z.B. "title", "revenueNet", "endDate"
+  fieldLabel  String   // z.B. "Projektbezeichnung", "Umsatz Netto", "Enddatum"
+  oldValue    String?  // JSON-stringifizierter alter Wert (null bei neu)
+  newValue    String?  // JSON-stringifizierter neuer Wert (null bei gelöscht)
+  
+  // Metadaten
+  changedAt   DateTime @default(now())
+  changeType  String   // "CREATE", "UPDATE", "DELETE"
+  
+  @@index([contractId])
+  @@index([changedAt])
+  @@map("contract_history")
 }
