@@ -164,9 +164,14 @@ npm start
 ### Railway Deployment
 
 1. **Repository verbinden**: GitHub-Repository mit Railway verknüpfen
-2. **Umgebungsvariablen setzen**: Alle Variablen aus `.env.local` in Railway konfigurieren
-3. **PostgreSQL-Addon**: PostgreSQL-Datenbank in Railway hinzufügen
-4. **Automatisches Deployment**: Railway deployed automatisch bei jedem Push
+2. **PostgreSQL-Addon hinzufügen**:
+   - Railway-Dashboard → Ihr Projekt → "+ New" → "Database" → "PostgreSQL"
+   - Railway erstellt automatisch eine Datenbank und setzt die `DATABASE_URL` Umgebungsvariable
+3. **Schema initialisieren**:
+   - Das Projekt enthält bereits ein `postdeploy` Script in `package.json`, das automatisch nach dem Deployment ausgeführt wird
+   - Alternativ können Sie die Schema-Initialisierung manuell über die Railway-Deploy-Logs durchführen
+4. **Umgebungsvariablen setzen**: Alle weiteren Variablen aus `.env.local` in Railway konfigurieren (z.B. `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, etc.)
+5. **Automatisches Deployment**: Railway deployed automatisch bei jedem Push und führt das `postdeploy` Script aus (`npx prisma db push && npm run db:seed`)
 
 ### Windows-Server (mit PM2)
 
