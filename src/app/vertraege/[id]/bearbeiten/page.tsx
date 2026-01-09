@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { ContractForm } from '@/components/contracts/ContractForm';
 import { prisma } from '@/lib/prisma';
+import type { ContractFull, DeadlineType } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +10,7 @@ interface PageProps {
   params: { id: string };
 }
 
-const getContract = async (id: string) => {
+const getContract = async (id: string): Promise<ContractFull | null> => {
   const contract = await prisma.contract.findUnique({
     where: { id },
     include: {
@@ -36,7 +37,18 @@ const getContract = async (id: string) => {
       },
     },
   });
-  return contract;
+
+  if (!contract || !contract.type) return null;
+
+  // Type assertion für deadlines: Prisma gibt string zurück, wir müssen es zu DeadlineType casten
+  return {
+    ...contract,
+    type: contract.type,
+    deadlines: contract.deadlines.map((deadline) => ({
+      ...deadline,
+      type: deadline.type as DeadlineType,
+    })),
+  } as ContractFull;
 };
 
 const getContractTypes = async () => {
