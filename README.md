@@ -97,8 +97,12 @@ Erstellen Sie eine `.env.local` Datei im Projektroot:
 # Datenbank (PostgreSQL)
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/vertragscontrolling"
 
-# NextAuth (Geheimschlüssel ändern!)
-NEXTAUTH_SECRET="ein-sehr-langer-geheimer-schluessel-32-zeichen"
+# NextAuth (ERFORDERLICH! - Geheimschlüssel ändern!)
+# Generieren Sie einen sicheren Secret:
+# Windows (PowerShell): [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+# Mac/Linux: openssl rand -base64 32
+# Online: https://generate-secret.vercel.app/32
+NEXTAUTH_SECRET="ein-sehr-langer-geheimer-schluessel-min-32-zeichen"
 NEXTAUTH_URL="http://localhost:3000"
 
 # Optional: SendGrid für E-Mail-Benachrichtigungen
@@ -167,10 +171,27 @@ npm start
 2. **PostgreSQL-Addon hinzufügen**:
    - Railway-Dashboard → Ihr Projekt → "+ New" → "Database" → "PostgreSQL"
    - Railway erstellt automatisch eine Datenbank und setzt die `DATABASE_URL` Umgebungsvariable
-3. **Schema initialisieren**:
+3. **Umgebungsvariablen setzen (WICHTIG!)**:
+   - Railway-Dashboard → Ihr Projekt → "Variables" Tab
+   - Fügen Sie folgende **erforderliche** Variablen hinzu:
+   
+   | Variable | Wert | Beschreibung |
+   |----------|------|--------------|
+   | `NEXTAUTH_SECRET` | Zufälliger String (min. 32 Zeichen) | **ERFORDERLICH!** Generieren Sie einen sicheren Secret:<br>• Windows (PowerShell): `[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))`<br>• Mac/Linux: `openssl rand -base64 32`<br>• Online: https://generate-secret.vercel.app/32 |
+   | `NEXTAUTH_URL` | Ihre Railway-URL | Z.B. `https://ihr-projekt.railway.app` (Railway zeigt die URL nach dem ersten Deploy) |
+   
+   - **Optionale** Variablen (nur wenn benötigt):
+     - `SENDGRID_API_KEY`: Für E-Mail-Benachrichtigungen
+     - `SENDGRID_FROM_EMAIL`: Absender-E-Mail-Adresse
+     - `CRON_SECRET`: Für Cron-Job-Authentifizierung
+     - `ADMIN_EMAIL`: Admin-E-Mail für Seed (Standard: `admin@example.com`)
+     - `ADMIN_PASSWORD`: Admin-Passwort für Seed (Standard: `admin123`)
+   
+   > ⚠️ **WICHTIG**: Ohne `NEXTAUTH_SECRET` wird der Healthcheck/Deploy fehlschlagen mit `MissingSecretError`!
+
+4. **Schema initialisieren**:
    - Das Projekt enthält bereits ein `postdeploy` Script in `package.json`, das automatisch nach dem Deployment ausgeführt wird
    - Alternativ können Sie die Schema-Initialisierung manuell über die Railway-Deploy-Logs durchführen
-4. **Umgebungsvariablen setzen**: Alle weiteren Variablen aus `.env.local` in Railway konfigurieren (z.B. `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, etc.)
 5. **Automatisches Deployment**: Railway deployed automatisch bei jedem Push und führt das `postdeploy` Script aus (`npx prisma db push && npm run db:seed`)
 
 ### Windows-Server (mit PM2)
