@@ -32,6 +32,18 @@ export const StammdatenSection = ({
     { value: 'DRAFT', label: 'Entwurf' },
   ];
 
+  // Wrapper für DateInput onChange, da DateInput eine andere Signatur verwendet
+  const handleDateInputChange = (e: { target: { name: string; value: string; type: string } }) => {
+    const syntheticEvent = {
+      target: {
+        name: e.target.name,
+        value: e.target.value,
+        type: e.target.type,
+      },
+    } as React.ChangeEvent<HTMLInputElement>;
+    onChange(syntheticEvent);
+  };
+
   return (
     <div className="space-y-6">
       {/* 1.1 - 1.3: Projektbezeichnung, Vertragsnummer, ESF-Nummer */}
@@ -73,14 +85,14 @@ export const StammdatenSection = ({
           label="Laufzeit von *"
           name="startDate"
           value={formData.startDate}
-          onChange={onChange}
+          onChange={handleDateInputChange}
           error={errors.startDate}
         />
         <DateInput
           label="Laufzeit bis"
           name="endDate"
           value={formData.endDate || ''}
-          onChange={onChange}
+          onChange={handleDateInputChange}
         />
       </div>
 

@@ -1,6 +1,8 @@
 import { Header } from '@/components/layout/Header';
 import { ContractForm } from '@/components/contracts/ContractForm';
 import { prisma } from '@/lib/prisma';
+import type { KpiType } from '@/types';
+import { convertKpiType } from '@/lib/prismaTypes';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,10 +12,13 @@ const getContractTypes = async () => {
   });
 };
 
-const getKpiTypes = async () => {
-  return await prisma.kpiType.findMany({
+const getKpiTypes = async (): Promise<KpiType[]> => {
+  const kpiTypes = await prisma.kpiType.findMany({
     orderBy: { name: 'asc' },
   });
+  
+  // Konvertiere Prisma-Typen zu TypeScript-Typen
+  return kpiTypes.map(convertKpiType);
 };
 
 export default async function NeuerVertragPage() {

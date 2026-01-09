@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { ContractForm } from '@/components/contracts/ContractForm';
 import { prisma } from '@/lib/prisma';
-import type { ContractFull, DeadlineType } from '@/types';
+import type { ContractFull, KpiType } from '@/types';
+import { convertDeadline, convertKpiType, convertChecklistItem } from '@/lib/prismaTypes';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,14 +41,16 @@ const getContract = async (id: string): Promise<ContractFull | null> => {
 
   if (!contract || !contract.type) return null;
 
-  // Type assertion für deadlines: Prisma gibt string zurück, wir müssen es zu DeadlineType casten
+  // Konvertiere Prisma-Typen zu TypeScript-Typen
   return {
     ...contract,
     type: contract.type,
-    deadlines: contract.deadlines.map((deadline) => ({
-      ...deadline,
-      type: deadline.type as DeadlineType,
+    deadlines: contract.deadlines.map(convertDeadline),
+    kpis: contract.kpis.map((kpi) => ({
+      ...kpi,
+      kpiType: convertKpiType(kpi.kpiType),
     })),
+    checklistItems: contract.checklistItems.map(convertChecklistItem),
   } as ContractFull;
 };
 
@@ -57,10 +60,13 @@ const getContractTypes = async () => {
   });
 };
 
-const getKpiTypes = async () => {
-  return await prisma.kpiType.findMany({
+const getKpiTypes = async (): Promise<KpiType[]> => {
+  const kpiTypes = await prisma.kpiType.findMany({
     orderBy: { name: 'asc' },
   });
+  
+  // Konvertiere Prisma-Typen zu TypeScript-Typen
+  return kpiTypes.map(convertKpiType);
 };
 
 export default async function BearbeitenPage({ params }: PageProps) {

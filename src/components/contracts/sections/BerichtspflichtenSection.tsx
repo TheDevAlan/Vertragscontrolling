@@ -175,7 +175,17 @@ export const BerichtspflichtenSection = ({
           <DateInput
             name="refundDeadline"
             value={formData.refundDeadline || ''}
-            onChange={onChange}
+            onChange={(e) => {
+              // DateInput verwendet eine andere Signatur, daher müssen wir konvertieren
+              const syntheticEvent = {
+                target: {
+                  name: e.target.name,
+                  value: e.target.value,
+                  type: e.target.type,
+                },
+              } as React.ChangeEvent<HTMLInputElement>;
+              onChange(syntheticEvent);
+            }}
             helperText="Wird automatisch als Frist angelegt"
           />
         </div>

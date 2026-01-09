@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Accordion, AccordionGroup } from '@/components/ui/Accordion';
 import { prisma } from '@/lib/prisma';
+import { convertDeadline, convertKpiType } from '@/lib/prismaTypes';
 import {
   formatDate,
   formatCurrency,
@@ -79,7 +80,17 @@ const getContract = async (id: string) => {
     },
   });
 
-  return contract;
+  if (!contract) return null;
+
+  // Konvertiere Prisma-Typen zu TypeScript-Typen für Konsistenz
+  return {
+    ...contract,
+    deadlines: contract.deadlines.map(convertDeadline),
+    kpis: contract.kpis.map((kpi) => ({
+      ...kpi,
+      kpiType: convertKpiType(kpi.kpiType),
+    })),
+  };
 };
 
 interface PageProps {
@@ -424,7 +435,7 @@ export default async function VertragDetailPage({ params, searchParams }: PagePr
                             <td className="px-3 py-2 font-medium">{duty.reportType}</td>
                             {years.map((year) => (
                               <td key={year} className="px-3 py-2 text-center">
-                                {duty[`year${year}` as keyof typeof duty] || '–'}
+                                {String(duty[`year${year}` as keyof typeof duty] || '–')}
                               </td>
                             ))}
                             <td className="px-3 py-2 text-slate-600">{duty.remarks || '–'}</td>

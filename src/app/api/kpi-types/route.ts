@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { convertKpiType } from '@/lib/prismaTypes';
 
 const kpiTypeSchema = z.object({
   name: z.string().min(1, 'Name erforderlich'),
@@ -22,7 +23,10 @@ export async function GET() {
       orderBy: { name: 'asc' },
     });
 
-    return NextResponse.json({ success: true, data: types });
+    // Konvertiere Prisma-Typen zu TypeScript-Typen
+    const convertedTypes = types.map(convertKpiType);
+
+    return NextResponse.json({ success: true, data: convertedTypes });
   } catch (error) {
     console.error('GET kpi types error:', error);
     return NextResponse.json(
