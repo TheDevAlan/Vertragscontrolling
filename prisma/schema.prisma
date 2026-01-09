@@ -1,12 +1,12 @@
 // Prisma Schema für Vertragscontrolling
-// SQLite Datenbank für lokale Installation
+// PostgreSQL Datenbank
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

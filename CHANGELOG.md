@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.8.0] - 2026-01-09
+
+### Neu: PostgreSQL-Migration
+- **Datenbank-Migration**: Wechsel von SQLite zu PostgreSQL für bessere Performance und Skalierbarkeit
+- **Docker-Integration**: PostgreSQL läuft jetzt in einem Docker-Container (`postgres:16-alpine`)
+- **Container-Konfiguration**:
+  - Container-Name: `vertragscontrolling-db`
+  - Port: `5432`
+  - Datenbank: `vertragscontrolling`
+  - Benutzer: `postgres`
+- **Prisma Schema**: Provider von `sqlite` auf `postgresql` geändert
+- **Umgebungsvariablen**: `.env.local` mit PostgreSQL-Verbindungsstring aktualisiert
+- **Datenbank-Initialisierung**: Schema erfolgreich migriert, alle Demo-Daten übertragen
+- **Rückwärtskompatibilität**: SQLite-Datei bleibt erhalten, kann bei Bedarf wieder aktiviert werden
+
+### Technische Änderungen
+- Prisma Schema: `provider = "postgresql"` in `datasource db`
+- DATABASE_URL: `postgresql://postgres:postgres@localhost:5432/vertragscontrolling`
+- Docker-Setup: Automatisierte Container-Erstellung und -Initialisierung
+- Dokumentation: Architecture.md und requirements.txt aktualisiert
+
+---
+
 ## [0.7.0] - 2026-01-09
 
 ### Neu: Rollen- und Rechtesystem

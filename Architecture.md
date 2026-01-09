@@ -8,7 +8,7 @@ KurzÃ¼berblick der Ordnerstruktur, damit Cursor Dateien schneller findet.
 - src/: App-Code (Next.js App Router)
 
 ## prisma/
-- schema.prisma: SQLite-Datenmodell (User, ContractType, Contract, NotificationLog)
+- schema.prisma: PostgreSQL-Datenmodell (User, ContractType, Contract, NotificationLog)
 - seed.ts: Demo-Daten (Admin, Vertragsarten, VertrÃ¤ge)
 
 ## src/app/ (App Router)

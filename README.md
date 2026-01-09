@@ -1,6 +1,6 @@
 # Vertragscontrolling
 
-Eine lokale Vertragsmanagement-Software für Unternehmen, entwickelt mit Next.js, Prisma und SQLite.
+Eine lokale Vertragsmanagement-Software für Unternehmen, entwickelt mit Next.js, Prisma und PostgreSQL.
 
 ![Dashboard Screenshot](docs/dashboard.png)
 
@@ -11,7 +11,7 @@ Eine lokale Vertragsmanagement-Software für Unternehmen, entwickelt mit Next.js
 - **🔔 Fristenwarnung**: Automatische Hervorhebung von bald ablaufenden Verträgen
 - **👥 Benutzerrollen**: Admin, Benutzer und Betrachter mit unterschiedlichen Berechtigungen
 - **📧 E-Mail-Benachrichtigungen**: Automatische Erinnerungen vor Vertragsablauf (via SendGrid)
-- **🏠 Lokale Installation**: Läuft auf Ihren eigenen Servern mit SQLite-Datenbank
+- **🏠 Lokale Installation**: Läuft auf Ihren eigenen Servern mit PostgreSQL-Datenbank (Docker)
 
 ## 🛠️ Tech-Stack
 
@@ -21,7 +21,7 @@ Eine lokale Vertragsmanagement-Software für Unternehmen, entwickelt mit Next.js
 | **Sprache** | TypeScript |
 | **Styling** | Tailwind CSS |
 | **Charts** | Recharts |
-| **Datenbank** | SQLite |
+| **Datenbank** | PostgreSQL (Docker) |
 | **ORM** | Prisma |
 | **Auth** | NextAuth.js |
 | **E-Mail** | SendGrid |
@@ -33,6 +33,7 @@ Eine lokale Vertragsmanagement-Software für Unternehmen, entwickelt mit Next.js
 
 - Node.js 18+ 
 - npm oder yarn
+- Docker Desktop (für PostgreSQL)
 
 > ⚠️ **Wichtig für Windows**: Das Projekt sollte in einem Pfad **ohne Leerzeichen und Sonderzeichen** liegen (z.B. `C:\Projects\Vertragscontrolling`), um npm-Probleme zu vermeiden.
 
@@ -42,16 +43,22 @@ Eine lokale Vertragsmanagement-Software für Unternehmen, entwickelt mit Next.js
 # 1. Abhängigkeiten installieren
 npm install
 
-# 2. Umgebungsvariablen einrichten
+# 2. PostgreSQL Docker-Container starten
+docker run --name vertragscontrolling-db -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=vertragscontrolling -p 5432:5432 -d postgres:16-alpine
+
+# 3. Umgebungsvariablen einrichten
 copy .env.example .env.local     # Windows
 # cp .env.example .env.local     # Mac/Linux
 
-# 3. Datenbank initialisieren
+# Wichtig: DATABASE_URL in .env.local auf PostgreSQL setzen:
+# DATABASE_URL="postgresql://postgres:postgres@localhost:5432/vertragscontrolling"
+
+# 4. Datenbank initialisieren
 npx prisma generate
 npx prisma db push
 npm run db:seed
 
-# 4. Entwicklungsserver starten
+# 5. Entwicklungsserver starten
 npm run dev
 ```
 
@@ -60,8 +67,8 @@ Dann im Browser öffnen: **http://localhost:3000**
 ### Umgebungsvariablen (.env.local)
 
 ```env
-# Datenbank
-DATABASE_URL="file:./dev.db"
+# Datenbank (PostgreSQL)
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/vertragscontrolling"
 
 # NextAuth (Geheimschlüssel ändern!)
 NEXTAUTH_SECRET="ein-sehr-langer-geheimer-schluessel-32-zeichen"
