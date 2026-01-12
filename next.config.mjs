@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Standalone Output für optimierte Production Builds
-  output: 'standalone',
   // CORS-Header für Healthcheck-Endpoint
   // Diese Header stellen sicher, dass Railway Healthchecks von healthcheck.railway.app akzeptiert werden
   async headers() {
