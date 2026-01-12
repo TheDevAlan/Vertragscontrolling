@@ -4,9 +4,11 @@ import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
 import type { Role } from '@/types';
 
-// Validierung des NEXTAUTH_SECRET
+// Validierung des NEXTAUTH_SECRET (nur zur Laufzeit, nicht beim Build)
 const nextAuthSecret = process.env.NEXTAUTH_SECRET;
-if (!nextAuthSecret) {
+// Prüfe ob wir im Build-Prozess sind (NEXT_PHASE wird beim Build gesetzt)
+const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+if (!nextAuthSecret && !isBuildPhase) {
   const errorMessage = 
     process.env.NODE_ENV === 'production'
       ? 'NEXTAUTH_SECRET ist nicht gesetzt. Bitte setzen Sie die Umgebungsvariable NEXTAUTH_SECRET in Railway (Variables Tab).'
