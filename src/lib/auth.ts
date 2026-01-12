@@ -13,8 +13,11 @@ const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
 if (process.env.NODE_ENV === 'production' && !isBuildPhase) {
   console.log('[DEBUG] Environment check:');
   console.log('[DEBUG] NEXTAUTH_SECRET:', nextAuthSecret ? 'SET (length: ' + nextAuthSecret.length + ')' : 'NOT SET');
+  console.log('[DEBUG] DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
+  console.log('[DEBUG] NEXTAUTH_URL:', process.env.NEXTAUTH_URL ? 'SET' : 'NOT SET');
   console.log('[DEBUG] NODE_ENV:', process.env.NODE_ENV);
-  console.log('[DEBUG] Available env vars (keys):', Object.keys(process.env).filter(k => k.includes('NEXT') || k.includes('AUTH')).join(', '));
+  console.log('[DEBUG] All env vars starting with NEXT/AUTH/DATABASE:', Object.keys(process.env).filter(k => k.startsWith('NEXT') || k.startsWith('AUTH') || k.startsWith('DATABASE')).join(', '));
+  console.log('[DEBUG] Total env vars count:', Object.keys(process.env).length);
 }
 
 if (!nextAuthSecret && !isBuildPhase) {
