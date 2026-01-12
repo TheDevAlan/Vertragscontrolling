@@ -2,10 +2,6 @@
 builder = "RAILPACK"
 buildCommand = "npm ci && npm run build"
 
-[build]
-builder = "RAILPACK"
-buildCommand = "npm ci && npm run build"
-
 [deploy]
 runtime = "V2"
 numReplicas = 1
