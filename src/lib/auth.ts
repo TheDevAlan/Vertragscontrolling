@@ -4,6 +4,16 @@ import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
 import type { Role } from '@/types';
 
+// Validierung des NEXTAUTH_SECRET
+const nextAuthSecret = process.env.NEXTAUTH_SECRET;
+if (!nextAuthSecret) {
+  const errorMessage = 
+    process.env.NODE_ENV === 'production'
+      ? 'NEXTAUTH_SECRET ist nicht gesetzt. Bitte setzen Sie die Umgebungsvariable NEXTAUTH_SECRET in Railway (Variables Tab).'
+      : 'NEXTAUTH_SECRET ist nicht gesetzt. Bitte fügen Sie NEXTAUTH_SECRET zu Ihrer .env oder .env.local Datei hinzu.';
+  throw new Error(errorMessage);
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -66,6 +76,6 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
     maxAge: 24 * 60 * 60, // 24 Stunden
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: nextAuthSecret,
 };
 
