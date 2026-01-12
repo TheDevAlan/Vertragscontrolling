@@ -8,6 +8,15 @@ import type { Role } from '@/types';
 const nextAuthSecret = process.env.NEXTAUTH_SECRET;
 // Prüfe ob wir im Build-Prozess sind (NEXT_PHASE wird beim Build gesetzt)
 const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+
+// Debug-Logging (nur in Production, um zu sehen welche Variablen verfügbar sind)
+if (process.env.NODE_ENV === 'production' && !isBuildPhase) {
+  console.log('[DEBUG] Environment check:');
+  console.log('[DEBUG] NEXTAUTH_SECRET:', nextAuthSecret ? 'SET (length: ' + nextAuthSecret.length + ')' : 'NOT SET');
+  console.log('[DEBUG] NODE_ENV:', process.env.NODE_ENV);
+  console.log('[DEBUG] Available env vars (keys):', Object.keys(process.env).filter(k => k.includes('NEXT') || k.includes('AUTH')).join(', '));
+}
+
 if (!nextAuthSecret && !isBuildPhase) {
   const errorMessage = 
     process.env.NODE_ENV === 'production'
