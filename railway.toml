@@ -5,7 +5,7 @@ buildCommand = "npm ci && npm run build"
 [deploy]
 runtime = "V2"
 numReplicas = 1
-startCommand = "node server.js"
+startCommand = "npm start"
 healthcheckPath = "/api/health"
 sleepApplication = false
 useLegacyStacker = false
