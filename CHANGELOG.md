@@ -1,5 +1,62 @@
 # Changelog
 
+## [0.8.2] - 2026-01-12
+
+### Neu: Railway Deployment-Integration
+- **Railway V2 Runtime-Konfiguration**: Vollständige Unterstützung für Railway Cloud-Deployment
+  - Railway-Konfigurationsdatei (`railway.toml`) mit V2 Runtime-Settings
+  - Multi-Region-Unterstützung (us-west2)
+  - Healthcheck-Konfiguration für Zero-Downtime-Deployments
+
+### Healthcheck & Monitoring
+- **Dedizierter Healthcheck-Endpoint**: Neuer `/api/health` Endpoint für Railway Healthchecks
+  - Keine Authentifizierung erforderlich (von Middleware ausgeschlossen)
+  - Schnelle Antwortzeit, keine Datenbank-Abhängigkeiten
+  - CORS-Header für Railway Healthcheck-Hostname (`healthcheck.railway.app`)
+  - Uptime-Information im Response
+
+### Datenbank-Initialisierung
+- **Automatische Schema-Initialisierung**: Start-Script (`start.sh`) initialisiert Datenbank vor Server-Start
+  - Automatisches `prisma db push` zur Schema-Erstellung
+  - Automatisches Seed-Script für Demo-Daten und Login-Accounts
+  - Verhindert "Table does not exist"-Fehler beim ersten Start
+
+### Umgebungsvariablen & Konfiguration
+- **NEXTAUTH_SECRET Validierung**: Verbesserte Validierung mit Build-Phase-Check
+  - Validierung überspringt Build-Phase (verhindert Build-Fehler)
+  - Laufzeit-Validierung mit aussagekräftigen Fehlermeldungen
+  - Debug-Logging für Umgebungsvariablen-Diagnose
+- **Erforderliche Railway-Variablen**:
+  - `NEXTAUTH_SECRET`: Für NextAuth JWT-Signierung (min. 32 Zeichen)
+  - `NEXTAUTH_URL`: Railway-URL für korrekte Callback-Handling
+  - `DATABASE_URL`: Automatisch von Railway gesetzt bei PostgreSQL-Addon
+
+### Technische Änderungen
+- **Next.js-Konfiguration**: 
+  - Standalone-Output entfernt (kompatibel mit `npm start`)
+  - CORS-Header für Healthcheck-Endpoint hinzugefügt
+- **Railway-Konfiguration** (`railway.toml`):
+  - V2 Runtime mit korrekten Build- und Deploy-Settings
+  - Healthcheck-Path: `/api/health`
+  - Healthcheck-Timeout: 300 Sekunden
+  - Restart-Policy: ON_FAILURE mit 10 Retries
+- **Start-Script** (`start.sh`):
+  - Automatische Datenbank-Initialisierung vor Server-Start
+  - Fehlerbehandlung für fehlende `DATABASE_URL`
+
+### Dokumentation
+- **README.md erweitert**: Umfassende Railway-Deployment-Anleitung
+  - Schritt-für-Schritt-Setup-Anweisungen
+  - Umgebungsvariablen-Konfiguration
+  - Troubleshooting-Tipps
+
+### Bugfixes
+- **Umgebungsvariablen-Verfügbarkeit**: Debug-Logging hilft bei Diagnose von Railway-Variablen-Problemen
+- **Datenbank-Schema-Fehler**: Automatische Initialisierung verhindert "Table does not exist"-Fehler
+- **Healthcheck-Fehler**: Korrekte Hostname- und Port-Konfiguration für Railway Healthchecks
+
+---
+
 ## [0.8.1] - 2026-01-09
 
 ### Sicherheits-Updates
